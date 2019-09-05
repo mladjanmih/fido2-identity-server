@@ -111,6 +111,12 @@ namespace Fido2IdentityServer.Controllers.Account
         [HttpGet]
         public async Task<IActionResult> Login(string returnUrl)
         {
+            var info = await HttpContext.AuthenticateAsync(_fido2AuthenticationScheme);
+            if (info.Succeeded)
+            {
+                await HttpContext.SignOutAsync(_fido2AuthenticationScheme);
+            }
+
             if (string.IsNullOrEmpty(returnUrl)) returnUrl = string.Empty;
             // build a model so we know what to show on the login page
             var vm = await BuildLoginViewModelAsync(returnUrl);
@@ -131,6 +137,12 @@ namespace Fido2IdentityServer.Controllers.Account
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginInputModel model, string button)
         {
+            var info = await HttpContext.AuthenticateAsync(_fido2AuthenticationScheme);
+            if (info.Succeeded)
+            {
+                await HttpContext.SignOutAsync(_fido2AuthenticationScheme);
+            }
+
             // check if we are in the context of an authorization request
             var context = await _interaction.GetAuthorizationContextAsync(model.ReturnUrl);
 

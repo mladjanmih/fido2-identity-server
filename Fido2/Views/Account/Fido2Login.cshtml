@@ -7,15 +7,19 @@
 {
     if (auth == "yubikey")
     {
-        <form action="/mfa" method="post" id="yubikey">
-            <button class="btn btn-primary" type="submit" id="yubikey" name="button" value="yubikey">Yubikey</button>
-        </form>
+        <div class="visible-lg-inline-block">
+            <form action="/mfa" method="post" id="yubikey">
+                <button class="btn btn-primary" type="submit" id="yubikey" name="button" value="yubikey">Yubikey</button>
+            </form>
+        </div>
     }
     else if (auth == "windows-hello")
     {
-        <form action="/mfa" method="post" id="windows-hello">
-            <button class="btn btn-primary" type="submit" id="windows-hello" name="button" value="windows-hello">Windows Hello</button>
-        </form>
+        <div class="visible-lg-inline-block">
+            <form action="/mfa" method="post" id="windows-hello">
+                <button class="btn btn-primary" type="submit" id="windows-hello" name="button" value="windows-hello">Windows Hello</button>
+            </form>
+        </div>
     }
 }
 
