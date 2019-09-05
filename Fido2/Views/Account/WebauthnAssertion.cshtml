@@ -1,0 +1,14 @@
+﻿@model Fido2IdentityServer.Controllers.Account.WebauthnAssertionViewModel
+@inject IJsonHelper Json;
+<h2>Fido2 Login</h2>
+
+<p>Please use your FIDO authenticator...</p>
+
+@section Scripts
+{
+    <script src="~/js/helpers.js"></script>
+    <script>
+        
+        makeAssertion(@Model.AssertionOptions);
+    </script>
+}
