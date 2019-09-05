@@ -1,22 +1,23 @@
-﻿@model  Fido2IdentityServer.Controllers.Account.Fido2LoginViewModel
+﻿@model Fido2IdentityServer.Controllers.Account.Fido2LoginViewModel
 
 <h2>Fido2Login</h2>
 
-<form asp-action="Fido2Login" asp-controller="Account">
-    <input type="hidden" asp-for="RememberLogin" />
-    <input type="hidden" asp-for="ReturnUrl" />
 
-    @foreach (var auth in Model.AuthenticatorTypes)
+@foreach (var auth in Model.AuthenticatorTypes)
+{
+    if (auth == "yubikey")
     {
-        if (auth == "yubikey")
-        {
-            <button class="btn btn-primary" type="submit" name="button" value="yubikey">Yubikey</button>
-        }
-        else if (auth == "windows-hello")
-        {
-            <button class="btn btn-primary" type="submit" name="button" value="windows-hello">Windows Hello</button>
-        }
+        <form action="/mfa" method="post" id="yubikey">
+            <button class="btn btn-primary" type="submit" id="yubikey" name="button" value="yubikey">Yubikey</button>
+        </form>
     }
-    /**/
-    /**/
-</form>
+    else if (auth == "windows-hello")
+    {
+        <form action="/mfa" method="post" id="windows-hello">
+            <button class="btn btn-primary" type="submit" id="windows-hello" name="button" value="windows-hello">Windows Hello</button>
+        </form>
+    }
+}
+
+<script src="~/js/login.js"></script>
+<script src="~/js/helpers.js"></script>

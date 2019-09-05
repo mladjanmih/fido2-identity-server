@@ -169,7 +169,8 @@ namespace Fido2IdentityServer.Controllers.Account
                 var user = await _users.FindByNameAsync(model.Username);
                 if (user == null)
                 {
-
+                    var viewModel = await BuildLoginViewModelAsync(model.ReturnUrl);
+                    return View(viewModel);
                 }
 
                 var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
@@ -250,24 +251,31 @@ namespace Fido2IdentityServer.Controllers.Account
             var user = await _users.FindByIdAsync(tempUser.GetSubjectId());
             var vm = BuildFido2LoginViewModel(returnUrl, rememberLogin, user);
 
+            HttpContext.Session.SetString("fido2.assertionOptions.returnUrl", string.IsNullOrEmpty(returnUrl) ? string.Empty : returnUrl);
+            HttpContext.Session.SetString("fido2.assertionOptions.rememberLogin", rememberLogin.ToString());
             return View(vm);
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Fido2Login(Fido2LoginViewModel model, string button)
+     //   [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Fido2Login([FromForm] string loginType)
         {
+            var returnUrl = HttpContext.Session.GetString("fido2.assertionOptions.returnUrl");
+            var remLogStr = HttpContext.Session.GetString("fido2.assertionOptions.rememberLogin");
+            var rememberLogin = string.IsNullOrEmpty(remLogStr) ? false : bool.Parse(remLogStr);
+
             var info = await HttpContext.AuthenticateAsync(_fido2AuthenticationScheme);
             var tempUser = info?.Principal;
-            if (tempUser == null) return RedirectToAction("Login", new { model.ReturnUrl });
+            if (tempUser == null) return null;//return RedirectToAction("Login", new { returnUrl });
             var user = await _users.FindByIdAsync(tempUser.GetSubjectId());
-            if (string.IsNullOrEmpty(button))
+            if (string.IsNullOrEmpty(loginType))
             {
-                var vm = BuildFido2LoginViewModel(model.ReturnUrl, model.RememberLogin, user);
-                return View("Fido2Login", vm);
+                //var vm = BuildFido2LoginViewModel(returnUrl, rememberLogin, user);
+                //return View("Fido2Login", vm);
+                return null;
             }
 
-            var fidoLogins = _authenticationContext.FidoLogins.Where(x => x.UserId == user.Id && x.AuthenticatorName == button).Select(x => x.PublicKeyId);
+            var fidoLogins = _authenticationContext.FidoLogins.Where(x => x.UserId == user.Id && x.AuthenticatorName == loginType).Select(x => x.PublicKeyId);
             var existingKeys = new List<PublicKeyCredentialDescriptor>();
             foreach (var key in fidoLogins)
             {
@@ -284,13 +292,7 @@ namespace Fido2IdentityServer.Controllers.Account
         
             // 4. Temporarily store options, session/in-memory cache/redis/db
             HttpContext.Session.SetString("fido2.assertionOptions", options.ToJson());
-            HttpContext.Session.SetString("fido2.assertionOptions.returnUrl", string.IsNullOrEmpty(model.ReturnUrl) ? string.Empty : model.ReturnUrl);
-            HttpContext.Session.SetString("fido2.assertionOptions.rememberLogin", model.RememberLogin.ToString());
-            var vm1 = new WebauthnAssertionViewModel()
-            {
-                AssertionOptions = _jsonHelper.Serialize(options)
-            };
-            return View("WebauthnAssertion", vm1);
+            return Json(options);
         }
 
         [HttpPost]
@@ -424,8 +426,6 @@ namespace Fido2IdentityServer.Controllers.Account
             }
 
             vm.AuthenticatorTypes = vm.AuthenticatorTypes.Distinct().ToList();
-            vm.ReturnUrl = returnUrl;
-            vm.RememberLogin = rememberLogin;
             return vm;
         }
 
