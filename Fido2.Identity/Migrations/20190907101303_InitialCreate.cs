@@ -11,6 +11,24 @@ namespace Fido2IdentityServer.Identity.Migrations
                 name: "AUTHENTICATION");
 
             migrationBuilder.CreateTable(
+                name: "Payments",
+                schema: "AUTHENTICATION",
+                columns: table => new
+                {
+                    Id = table.Column<string>(nullable: false),
+                    UserId = table.Column<string>(nullable: true),
+                    CreditorAccount = table.Column<string>(nullable: true),
+                    DebtorAccount = table.Column<string>(nullable: true),
+                    CreditorName = table.Column<string>(nullable: true),
+                    DebtorName = table.Column<string>(nullable: true),
+                    Amount = table.Column<decimal>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Payments", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Roles",
                 schema: "AUTHENTICATION",
                 columns: table => new
@@ -83,7 +101,8 @@ namespace Fido2IdentityServer.Identity.Migrations
                     Id = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     UserId = table.Column<string>(nullable: true),
-                    PublicKeyId = table.Column<byte[]>(nullable: true),
+                    PublikKeyId = table.Column<string>(nullable: true),
+                    PublicKeyIdBytes = table.Column<byte[]>(nullable: true),
                     PublicKey = table.Column<byte[]>(nullable: true),
                     UserHandle = table.Column<byte[]>(nullable: true),
                     SignatureCounter = table.Column<uint>(nullable: false),
@@ -253,6 +272,10 @@ namespace Fido2IdentityServer.Identity.Migrations
         {
             migrationBuilder.DropTable(
                 name: "FidoLogins",
+                schema: "AUTHENTICATION");
+
+            migrationBuilder.DropTable(
+                name: "Payments",
                 schema: "AUTHENTICATION");
 
             migrationBuilder.DropTable(

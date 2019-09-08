@@ -1,61 +1,59 @@
-﻿if (document.getElementById('yubikey') != null) 
-    document.getElementById('yubikey').addEventListener('submit', handleYubikeySignInSubmit);
-if (document.getElementById('windows-hello') != null) 
-    document.getElementById('windows-hello').addEventListener('submit', handleWindowsHelloSignInSubmit);
+if (document.getElementById('digital-signature') != null) 
+    document.getElementById('digital-signature').addEventListener('submit', handleDSigAuthenticatorSelectSubmit);
+//if (document.getElementById('windows-hello-dsig') != null)
+//    document.getElementById('windows-hello-dsig').addEventListener('submit', handleWindowsHelloDSigSubmit);
 
-
-async function handleYubikeySignInSubmit(event) {
+async function handleDSigAuthenticatorSelectSubmit(event) {
     event.preventDefault();
 
-    // passwordfield is omitted in demo
-    // let password = this.password.value;
+    let paymentId = document.getElementById('paymentId').value;
 
+    var authenticators = document.getElementsByName('authenticator');
+    var authenticator;
+    for (var i = 0; i < authenticators.length; i++) {
+        if (authenticators[i].checked) {
+            authenticator = authenticators[i].value;
+        }
+    }
 
     // prepare form post data
     var formData = new FormData();
-    formData.append('loginType', "yubikey");
+    formData.append("authenticator", authenticator);
 
-    await handleSignInSubmit(formData);
-    // not done in demo
-    // todo: validate username + password with server (has nothing to do with FIDO2/WebAuthn)
+    await handleDSigSubmit(formData, paymentId);
 }
 
-async function handleWindowsHelloSignInSubmit(event) {
-    event.preventDefault();
+//async function handleWindowsHelloDSigSubmit(event) {
+//    event.preventDefault();
 
- //   let username = this.username.value;
+//    let challenge = this.windowsHelloChallenge.value;
 
-    // passwordfield is omitted in demo
-    // let password = this.password.value;
+//    // prepare form post data
+//    var formData = new FormData();
+//    formData.append('dsigType', "windows-hello");
 
+//    await handleDSigSubmit(formData, challenge);
+//}
 
-    // prepare form post data
-    var formData = new FormData();
-    formData.append('loginType', "windows-hello");
-
-    await handleSignInSubmit(formData);
-    // not done in demo
-    // todo: validate username + password with server (has nothing to do with FIDO2/WebAuthn)
-}
-
-async function handleSignInSubmit(formData) {
+async function handleDSigSubmit(formData, paymentId) {
     // send to server for registering
     let makeAssertionOptions;
     try {
-        var res = await fetch('/Account/Fido2Login', {
+        var res = await fetch('/Fido/AssertDigitalSignature', {
             method: 'POST', // or 'PUT'
             body: formData, // data can be `string` or {object}!
             headers: {
-                'Accept': 'application/json'
+                'Accept': 'application/json',
+                'PaymentId': paymentId
             }
         });
         if (res == null) {
-            window.location.href = "/Account/Fido2LoginFailed";
+            window.location.href = "/Fido/DigitalSigningFailed";
         }
         makeAssertionOptions = await res.json();
     } catch (e) {
        // showErrorAlert("Request to server failed", e);
-        window.location.href = "/Account/Fido2LoginFailed";
+        window.location.href = "/Fido/DigitalSigningFailed";
         return;
     }
 
@@ -66,7 +64,7 @@ async function handleSignInSubmit(formData) {
         console.log("Error creating assertion options");
         console.log(makeAssertionOptions.errorMessage);
        // showErrorAlert(makeAssertionOptions.errorMessage);
-        window.location.href = "/Account/Fido2LoginFailed";
+        window.location.href = "/Fido/DigitalSigningFailed";
         return;
     }
 
@@ -87,16 +85,8 @@ async function handleSignInSubmit(formData) {
     try {
         credential = await navigator.credentials.get({ publicKey: makeAssertionOptions })
     } catch (err) {
-      //  showErrorAlert(err.message ? err.message : err);
-        window.location.href = "/Account/Fido2LoginFailed";
+        window.location.href = "/Fido/DigitalSigningFailed";
     }
-
-    //try {
-    //    await verifyAssertionWithServer(credential);
-    //} catch (e) {
-    // //   showErrorAlert("Could not verify assertion", e);
-    //    window.location.href = "/Account/Fido2LoginFailed";
-    //}
 
     let authData = new Uint8Array(credential.response.authenticatorData);
     let clientDataJSON = new Uint8Array(credential.response.clientDataJSON);
@@ -116,7 +106,7 @@ async function handleSignInSubmit(formData) {
 
     let response;
     try {
-        let res = await fetch("/Account/Fido2LoginCallback", {
+        let res = await fetch("/Fido/AssertDigitalSignatureResult", {
             method: 'POST', // or 'PUT'
             body: JSON.stringify(data), // data can be `string` or {object}!
             headers: {
@@ -128,7 +118,7 @@ async function handleSignInSubmit(formData) {
         response = await res.json();
     } catch (e) {
      //   showErrorAlert("Request to server failed", e);
-        window.location.href = "/Account/Fido2LoginFailed";
+        window.location.href = "/Fido/DigitalSigningFailed";
         throw e;
        
     }
@@ -140,10 +130,10 @@ async function handleSignInSubmit(formData) {
         console.log("Error doing assertion");
         console.log(response.errorMessage);
  //       showErrorAlert(response.errorMessage);
-        window.location.href = "/Account/Fido2LoginFailed";
+        window.location.href = "/Fido/DigitalSigningFailed";
         return;
     }
 
     // redirect to dashboard to show keys
-    window.location.href = "/Account/Fido2LoginSuccess";
+    window.location.href = "/Fido/DigitalSigningSuccess";
 }

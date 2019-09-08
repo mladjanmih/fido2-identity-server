@@ -11,11 +11,12 @@ namespace Fido2IdentityServer.Identity.Models
         [Key]
         public long Id { get; set; }
 
-        public string UserId { get; set;
-        }
+        public string UserId { get; set;}
         public virtual User User { get; set; }
 
-        public byte[] PublicKeyId { get; set; }
+        public string PublicKeyId { get; set; }
+
+        public byte[] PublicKeyIdBytes { get; set; }
 
         public byte[] PublicKey { get; set; }
 

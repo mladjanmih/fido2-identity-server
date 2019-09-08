@@ -27,6 +27,8 @@ namespace TestClientApp.Controllers
             return new SignOutResult(new[] { "Cookies", "oidc" });
         }
 
+       // public IActionResult
+
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()

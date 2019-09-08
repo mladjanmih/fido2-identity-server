@@ -3,14 +3,16 @@ using System;
 using Fido2IdentityServer.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace Fido2IdentityServer.Identity.Migrations
 {
     [DbContext(typeof(AuthenticationContext))]
-    partial class AuthenticationContextModelSnapshot : ModelSnapshot
+    [Migration("20190907101303_InitialCreate")]
+    partial class InitialCreate
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -30,9 +32,9 @@ namespace Fido2IdentityServer.Identity.Migrations
 
                     b.Property<byte[]>("PublicKey");
 
-                    b.Property<string>("PublicKeyId");
-
                     b.Property<byte[]>("PublicKeyIdBytes");
+
+                    b.Property<string>("PublikKeyId");
 
                     b.Property<DateTime>("RegistrationDate");
 
@@ -56,10 +58,6 @@ namespace Fido2IdentityServer.Identity.Migrations
 
                     b.Property<decimal>("Amount");
 
-                    b.Property<string>("AuthenticatorData");
-
-                    b.Property<string>("ClientData");
-
                     b.Property<string>("CreditorAccount");
 
                     b.Property<string>("CreditorName");
@@ -67,14 +65,6 @@ namespace Fido2IdentityServer.Identity.Migrations
                     b.Property<string>("DebtorAccount");
 
                     b.Property<string>("DebtorName");
-
-                    b.Property<bool>("HasSignature");
-
-                    b.Property<string>("PublicKeyId");
-
-                    b.Property<DateTime>("RequestDateTime");
-
-                    b.Property<string>("Signature");
 
                     b.Property<string>("UserId");
 

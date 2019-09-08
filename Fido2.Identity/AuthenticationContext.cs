@@ -18,6 +18,8 @@ namespace Fido2IdentityServer.Identity
 
         public DbSet<FidoLogin> FidoLogins { get; set; }
 
+        public DbSet<Payment> Payments { get; set; }
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite(@"Data Source=C:\Users\Mladjan\source\repos\Fido2\Fido2.Identity\users.db");

@@ -14,6 +14,7 @@ namespace Fido2IdentityServer.Controllers.Fido
 
     public class FidoLoginViewModel
     {
+        public long Id { get; set; }
         public string CredentialType { get; set; }
         
         public DateTime RegistrationDate { get; set; }

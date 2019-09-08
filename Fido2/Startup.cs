@@ -78,7 +78,7 @@ namespace Fido2IdentityServer
                 app.UseHsts();
             }
             app.UseSession();
-            app.UseHttpsRedirection();
+          //  app.UseHttpsRedirection();
             app.UseStaticFiles();
             app.UseCookiePolicy();
             app.UseIdentityServer();

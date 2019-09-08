@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 using System.Threading.Tasks;
+using Fido2IdentityServer.Identity;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -10,6 +11,7 @@ using Microsoft.AspNetCore.HttpsPolicy;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using TestClientApp.Stores;
 
 namespace TestClientApp
 {
@@ -32,8 +34,8 @@ namespace TestClientApp
                 options.MinimumSameSitePolicy = SameSiteMode.None;
             });
 
-           
-
+            services.AddTransient<PaymentStore>();
+            services.AddTransient<AuthenticationContext>();
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
 
             JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
@@ -46,11 +48,12 @@ namespace TestClientApp
                 .AddCookie("Cookies")
                 .AddOpenIdConnect("oidc", options =>
                 {
-                    options.Authority = "https://localhost:37101";
+                    options.Authority = Configuration["Identity"];
                     options.RequireHttpsMetadata = false;
                     
                     options.ClientId = "mvc";
                     options.SaveTokens = true;
+                 //   options.ResponseType = "id_token token";
                 });
         }
 

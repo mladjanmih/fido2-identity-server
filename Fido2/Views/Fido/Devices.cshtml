@@ -10,6 +10,7 @@
                 <th scope="col">Registration Date</th>
                 <th scope="col">AAGuid</th>
                 <th scope="col">Credential ID</th>
+                <th></th>
             </tr>
         </thead>
         <tbody>
@@ -20,6 +21,12 @@
                     <td>@device.RegistrationDate</td>
                     <td>@device.AaGuid</td>
                     <td>@device.CredentialId</td>
+                    <td>
+                        <form asp-action="RemoveLogin" asp-route-loginId="@device.Id">
+                            
+                            <button class="btn btn-primary" type="submit" name="button" value="yubikey">Remove Login</button>
+                        </form>
+                    </td>
                 </tr>
 
             }

@@ -2,6 +2,10 @@
   "iisSettings": {
     "windowsAuthentication": false,
     "anonymousAuthentication": true,
+    "iis": {
+      "applicationUrl": "http://localhost/Fido2IdentityServer",
+      "sslPort": 0
+    },
     "iisExpress": {
       "applicationUrl": "http://localhost:51723",
       "sslPort": 44355
@@ -34,6 +38,11 @@
       "httpPort": 51724,
       "useSSL": true,
       "sslPort": 44356
+    },
+    "IIS": {
+      "commandName": "IIS",
+      "launchBrowser": true,
+      "launchUrl": "http://localhost/Fido2IdentityServer"
     }
   }
 }

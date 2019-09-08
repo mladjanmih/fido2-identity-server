@@ -1,0 +1,68 @@
+﻿@model  TestClientApp.Models.PaymentsViewModel
+@{
+    ViewData["Title"] = "InitiatePayment";
+}
+
+<form asp-action="StartPaymentInitiation" method="get">
+    <button class="btn btn-primary" name="button" value="initiate">Initiate payment</button>
+</form>
+<br />
+
+@if (Model.Payments.Any())
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th scope="col">Payment ID</th>
+                <th scope="col">Creditor Name</th>
+                <th scope="col">Creditor Account</th>
+                <th scope="col">Debtor Name</th>
+                <th scope="col">Debtor Account</th>
+                <th scope="col">Request Time</th>
+                <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var payment in Model.Payments)
+            {
+                <tr>
+                    <td>@payment.PaymentId</td>
+                    <td>@payment.CreditorName</td>
+                    <td>@payment.CreditorAccount</td>
+                    <td>@payment.DebtorName</td>
+                    <td>@payment.DebtorName</td>
+                    <td>@payment.RequestDateTime</td>
+                    <td>
+                        <form asp-action="SignPayment" asp-controller="Payment" asp-route-paymentId="@payment.PaymentId">
+                            @if (payment.HasSignature)
+                            {
+                                <button class="btn btn-primary" name="button" value="initiate" disabled>Sign Payment</button>
+                            }
+                            else
+                            {
+                                <button class="btn btn-primary" name="button" value="initiate" >Sign Payment</button>
+                            }
+                        </form>
+                    </td>
+                </tr>
+
+            }
+        </tbody>
+    </table>
+}
+
+@if (Model.SigningSuccess != null)
+{
+    if (Model.SigningSuccess.Value)
+    {
+        <div class="alert alert-success">
+            <p>Payment sucessfully signed.</p>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-danger">
+            <p>Payment signing failed.</p>
+        </div>
+    }
+}

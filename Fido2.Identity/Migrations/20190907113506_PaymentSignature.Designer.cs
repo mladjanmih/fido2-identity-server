@@ -9,8 +9,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Fido2IdentityServer.Identity.Migrations
 {
     [DbContext(typeof(AuthenticationContext))]
-    [Migration("20190904220737_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20190907113506_PaymentSignature")]
+    partial class PaymentSignature
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -32,7 +32,9 @@ namespace Fido2IdentityServer.Identity.Migrations
 
                     b.Property<byte[]>("PublicKey");
 
-                    b.Property<byte[]>("PublicKeyId");
+                    b.Property<string>("PublicKeyId");
+
+                    b.Property<byte[]>("PublicKeyIdBytes");
 
                     b.Property<DateTime>("RegistrationDate");
 
@@ -47,6 +49,38 @@ namespace Fido2IdentityServer.Identity.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("FidoLogins");
+                });
+
+            modelBuilder.Entity("Fido2IdentityServer.Identity.Models.Payment", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<decimal>("Amount");
+
+                    b.Property<string>("AuthenticatorData");
+
+                    b.Property<string>("ClientData");
+
+                    b.Property<string>("CreditorAccount");
+
+                    b.Property<string>("CreditorName");
+
+                    b.Property<string>("DebtorAccount");
+
+                    b.Property<string>("DebtorName");
+
+                    b.Property<bool>("HasSignature");
+
+                    b.Property<string>("PublicKeyId");
+
+                    b.Property<string>("Signature");
+
+                    b.Property<string>("UserId");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("Fido2IdentityServer.Identity.Models.Role", b =>

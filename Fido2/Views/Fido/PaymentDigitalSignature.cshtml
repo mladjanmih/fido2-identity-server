@@ -1,0 +1,43 @@
+﻿@model Fido2IdentityServer.Controllers.Fido.PaymentDigitalSignatureViewModel;
+@{
+    ViewData["Title"] = "PaymentDigitalSignature";
+}
+
+<h2>Payment Data</h2>
+<dl>
+    <dt>Payment Identificator</dt>
+    <dd>@Model.PaymentId</dd>
+
+    <dt>Creditor Account</dt>
+    <dd>@Model.CreditorAccount</dd>
+
+    <dt>Debtor Account</dt>
+    <dd>@Model.DebtorAccount</dd>   
+
+    <dt>Subject</dt>
+    <dd>@Model.UserId</dd>
+</dl>
+
+
+<form action="/dsig" method="post" id="digital-signature">
+    <input type="hidden" id="paymentId" value="@Model.PaymentId" />
+    @foreach (var auth in Model.AuthenticatorTypes)
+    {
+        if (auth.Key == "yubikey")
+        {
+            <input type="radio" id="@auth.Value" name="authenticator" value="@auth.Value" checked="checked"> @:Yubikey AAGuid:@auth.Value
+
+
+        }
+        else if (auth.Key == "windows-hello")
+        {
+            <input type="radio" id="@auth.Value" name="authenticator" value="@auth.Value" checked="checked"> @:Windows Hello AAGuid:@auth.Value
+
+
+        }
+        <br />
+    }
+    <button class="btn btn-primary" type="submit" id="digital-signature-button" name="button" value="digital-signature">Authorize Payment</button>
+</form>
+<script src="~/js/dsig.js"></script>
+<script src="~/js/helpers.js"></script>

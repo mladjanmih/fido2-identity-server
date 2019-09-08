@@ -117,6 +117,12 @@ namespace Fido2IdentityServer.Controllers.Account
                 await HttpContext.SignOutAsync(_fido2AuthenticationScheme);
             }
 
+            var result = await HttpContext.AuthenticateAsync();
+            if (result.Succeeded)
+            {
+                return View("Index");
+            }
+
             if (string.IsNullOrEmpty(returnUrl)) returnUrl = string.Empty;
             // build a model so we know what to show on the login page
             var vm = await BuildLoginViewModelAsync(returnUrl);
@@ -261,6 +267,7 @@ namespace Fido2IdentityServer.Controllers.Account
             var tempUser = info?.Principal;
             if (tempUser == null) return RedirectToAction("Login", new { returnUrl });
             var user = await _users.FindByIdAsync(tempUser.GetSubjectId());
+
             var vm = BuildFido2LoginViewModel(returnUrl, rememberLogin, user);
 
             HttpContext.Session.SetString("fido2.assertionOptions.returnUrl", string.IsNullOrEmpty(returnUrl) ? string.Empty : returnUrl);
@@ -280,6 +287,7 @@ namespace Fido2IdentityServer.Controllers.Account
             var tempUser = info?.Principal;
             if (tempUser == null) return null;//return RedirectToAction("Login", new { returnUrl });
             var user = await _users.FindByIdAsync(tempUser.GetSubjectId());
+
             if (string.IsNullOrEmpty(loginType))
             {
                 //var vm = BuildFido2LoginViewModel(returnUrl, rememberLogin, user);
@@ -287,7 +295,7 @@ namespace Fido2IdentityServer.Controllers.Account
                 return null;
             }
 
-            var fidoLogins = _authenticationContext.FidoLogins.Where(x => x.UserId == user.Id && x.AuthenticatorName == loginType).Select(x => x.PublicKeyId);
+            var fidoLogins = _authenticationContext.FidoLogins.Where(x => x.UserId == user.Id && x.AuthenticatorName == loginType).Select(x => x.PublicKeyIdBytes);
             var existingKeys = new List<PublicKeyCredentialDescriptor>();
             foreach (var key in fidoLogins)
             {
@@ -322,7 +330,7 @@ namespace Fido2IdentityServer.Controllers.Account
                 var options = AssertionOptions.FromJson(jsonOptions);
 
                 // 2. Get registered credential from database
-                var creds = _authenticationContext.FidoLogins.FirstOrDefault(x => x.PublicKeyId.SequenceEqual(clientResponse.Id));
+                var creds = _authenticationContext.FidoLogins.FirstOrDefault(x => x.PublicKeyIdBytes.SequenceEqual(clientResponse.Id));
                     //DemoStorage.GetCredentialById(clientResponse.Id);
 
                 if (creds == null)
@@ -341,7 +349,7 @@ namespace Fido2IdentityServer.Controllers.Account
                 // 4. Create callback to check if userhandle owns the credentialId
                 IsUserHandleOwnerOfCredentialIdAsync callback = async (args) =>
                 {
-                    return _authenticationContext.FidoLogins.FirstOrDefault(x => x.UserHandle.SequenceEqual(args.UserHandle) && x.PublicKeyId.SequenceEqual(args.CredentialId)) != null;
+                    return _authenticationContext.FidoLogins.FirstOrDefault(x => x.UserHandle.SequenceEqual(args.UserHandle) && x.PublicKeyIdBytes.SequenceEqual(args.CredentialId)) != null;
                 };
 
                 // 5. Make the assertion
@@ -502,8 +510,14 @@ namespace Fido2IdentityServer.Controllers.Account
         }
 
         [HttpGet]
-        public IActionResult Register()
+        public async Task<IActionResult> Register()
         {
+            var result = await HttpContext.AuthenticateAsync();
+            if (result.Succeeded)
+            {
+                return View("Index");
+            }
+
             return View(new RegisterViewModel());
         }
 
