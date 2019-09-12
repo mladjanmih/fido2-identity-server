@@ -1,58 +1,68 @@
 ﻿@model Fido2IdentityServer.Controllers.Fido.DevicesViewModel
-<h1>Fido devices</h1>
 
-@if (Model.FidoLogins.Any())
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th scope="col">Credential Type</th>
-                <th scope="col">Registration Date</th>
-                <th scope="col">AAGuid</th>
-                <th scope="col">Credential ID</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var device in Model.FidoLogins)
+
+<main>
+    <div class="container" style="padding-top: 3em">
+
+        <!--Section: Password Login-->
+        <section class="mt-5 wow fadeIn">
+            <h3 class="h3 text-center mb-5">Registered authenticators</h3>
+            @if (Model.FidoLogins.Any())
             {
-                <tr>
-                    <td>@device.CredentialType</td>
-                    <td>@device.RegistrationDate</td>
-                    <td>@device.AaGuid</td>
-                    <td>@device.CredentialId</td>
-                    <td>
-                        <form asp-action="RemoveLogin" asp-route-loginId="@device.Id">
-                            
-                            <button class="btn btn-primary" type="submit" name="button" value="yubikey">Remove Login</button>
-                        </form>
-                    </td>
-                </tr>
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Credential Type</th>
+                            <th scope="col">Registration Date</th>
+                            <th scope="col">AAGuid</th>
+                            <th scope="col">Credential ID</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var device in Model.FidoLogins)
+                        {
+                            <tr>
+                                <td>@device.CredentialType</td>
+                                <td>@device.RegistrationDate</td>
+                                <td>@device.AaGuid</td>
+                                <td>@device.CredentialId</td>
+                                <td>
+                                    <form asp-action="RemoveLogin" asp-route-loginId="@device.Id">
 
+                                        <button class="btn btn-primary" type="submit" name="button" value="@device.CredentialType">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+
+                        }
+                    </tbody>
+                </table>
             }
-        </tbody>
-    </table>
-}
 
-@if (Model.RegistrationSuccess != null)
-{
-    if (Model.RegistrationSuccess.Value)
-    {
-        <div class="alert alert-success">
-            <p>Device successfully registered.</p>
-        </div>
-    }
-    else
-    {
-        <div class="alert alert-danger">
-            <p>Device registration failed.</p>
-        </div>
-    }
-}
-<form asp-action="FidoRegister" method="post">
-    <button class="btn btn-primary" type="submit" name="button" value="yubikey">Register Yubikey</button>
-    <button class="btn btn-primary" type="submit" name="button" value="windows-hello">Register Windows Hello</button>
-</form>
+            @if (Model.RegistrationSuccess != null)
+            {
+                if (Model.RegistrationSuccess.Value)
+                {
+                    <div class="alert alert-success">
+                        <p>Device successfully registered.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-danger">
+                        <p>Device registration failed.</p>
+                    </div>
+                }
+            }
+        </section>
+        <section>
+            <form asp-action="FidoRegister" method="post">
+                <button class="btn btn-primary" type="submit" name="button" value="yubikey">Register Yubikey</button>
+                <button class="btn btn-primary" type="submit" name="button" value="windows-hello">Register Windows Hello</button>
+            </form>
+        </section>
 
 
-
+    </div>
+</main>

@@ -1,0 +1,96 @@
+﻿@model Fido2IdentityServer.Controllers.Home.HomeRegisterViewModel
+@{
+    ViewData["Title"] = "_HomeRegister";
+}
+
+<!-- Content -->
+<div class="container">
+
+    <!--Grid row-->
+    <div class="row wow fadeIn">
+
+        <!--Grid column-->
+        <div class="col-md-6 mb-4 white-text text-center text-md-left">
+
+            <h1 class="display-4 font-weight-bold">FIDO2 Identity Management & Authenticaiton Server</h1>
+
+            <hr class="hr-light">
+
+            <p>
+                <strong>Revolution in user authentication</strong>
+            </p>
+
+            <p class="mb-4 d-none d-md-block">
+                <strong>
+                    FIDO2 brings to you the most secure way to authenticate throughout World Wide Web.
+                </strong>
+            </p>
+
+        </div>
+        <!--Grid column-->
+        <!--Grid column-->
+        <div class="col-md-6 col-xl-5 mb-4">
+
+            <!--Card-->
+            <div class="card">
+
+                <!--Card content-->
+                <div class="card-body">
+
+                    <!-- Form -->
+                    <form asp-action="Register" asp-controller="Account">
+                        <!-- Heading -->
+                        <h3 class="dark-grey-text text-center">
+                            <strong>Sign up</strong>
+                        </h3>
+                        <hr>
+
+                        <div class="md-form">
+                            <i class="fas fa-user prefix grey-text"></i>
+                            <input type="text" id="username" class="form-control" asp-for="Username">
+                            <label for="username">User Name:</label>
+                        </div>
+                        <div class="md-form">
+                            <i class="fas fa-envelope prefix grey-text"></i>
+                            <input type="text" id="email" class="form-control" asp-for="Email">
+                            <label for="email">Email:</label>
+                        </div>
+
+                        <div class="md-form">
+                            <i class="fas fa-key prefix grey-text"></i>
+                            <input type="password" id="password" class="form-control" asp-for="Password">
+                            <label for="password">Password:</label>
+                        </div>
+
+
+                        <div class="md-form">
+                            <i class="fas fa-key prefix grey-text"></i>
+                            <input type="password" id="confirmPassword" class="form-control" asp-for="ConfirmPassword">
+                            <label for="confirmPassword">Confirm Password:</label>
+                        </div>
+
+                        <div class="text-center">
+                            <button class="btn btn-indigo" id="register">Sign Up</button>
+                            @*<hr>
+                                <fieldset class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="">
+                                    <label for="checkbox1" class="form-check-label dark-grey-text">subscribe me to the newsletter</label>
+                                </fieldset>*@
+                        </div>
+
+                    </form>
+                    <!-- Form -->
+
+                </div>
+
+            </div>
+            <!--/.Card-->
+
+        </div>
+        <!--Grid column-->
+
+    </div>
+    <!--Grid row-->
+
+</div>
+<!-- Content -->

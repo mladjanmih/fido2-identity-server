@@ -8,9 +8,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using System.Linq;
 using System.Threading.Tasks;
 
-namespace IdentityServer4.Quickstart.UI
+namespace Fido2IdentityServer.Controllers.Home
 {
     [SecurityHeaders]
     [AllowAnonymous]
@@ -29,14 +30,16 @@ namespace IdentityServer4.Quickstart.UI
 
         public IActionResult Index()
         {
-            if (_environment.IsDevelopment())
+            var sub = HttpContext.User.Claims.FirstOrDefault(x => x.Type == "sub")?.Value;
+            if (!string.IsNullOrEmpty(sub))
             {
-                // only show in development
-                return View();
+                return RedirectToAction("Devices", "Fido");
             }
 
-            _logger.LogInformation("Homepage is disabled in production. Returning 404.");
-            return NotFound();
+            var vm = new HomeViewModel();
+            TempData["Page"] = "Index";
+            return View(vm);
+          
         }
 
         /// <summary>

@@ -4,6 +4,7 @@
 
 using Fido2IdentityServer.Identity;
 using Fido2IdentityServer.Identity.Models;
+using Fido2IdentityServer.Models;
 using Fido2NetLib;
 using Fido2NetLib.Objects;
 using IdentityModel;
@@ -140,7 +141,6 @@ namespace Fido2IdentityServer.Controllers.Account
         /// Handle postback from username/password login
         /// </summary>
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginInputModel model, string button)
         {
             var info = await HttpContext.AuthenticateAsync(_fido2AuthenticationScheme);
@@ -151,44 +151,14 @@ namespace Fido2IdentityServer.Controllers.Account
 
             // check if we are in the context of an authorization request
             var context = await _interaction.GetAuthorizationContextAsync(model.ReturnUrl);
-
-            // the user clicked the "cancel" button
-            if (button != "login")
-            {
-                if (context != null)
-                {
-                    // if the user cancels, send a result back into IdentityServer as if they 
-                    // denied the consent (even if this client does not require consent).
-                    // this will send back an access denied OIDC error response to the client.
-                    await _interaction.GrantConsentAsync(context, ConsentResponse.Denied);
-
-                    // we can trust model.ReturnUrl since GetAuthorizationContextAsync returned non-null
-                    if (await _clientStore.IsPkceClientAsync(context.ClientId))
-                    {
-                        // if the client is PKCE then we assume it's native, so this change in how to
-                        // return the response is for better UX for the end user.
-                        return View("Redirect", new RedirectViewModel { RedirectUrl = model.ReturnUrl });
-                    }
-
-                    return Redirect(model.ReturnUrl);
-                }
-                else
-                {
-                    // since we don't have a valid context, then we just go back to the home page
-                    return Redirect("~/");
-                }
-            }
-
+            var response = new LoginResponse() { ReturnUrl = model.ReturnUrl};
             if (ModelState.IsValid)
             {
-                // validate username/password against in-memory store
-                // var validationContext = new ResourceOwnerPasswordValidationContext() { UserName = model.Username, Password = model.Password };
-                // await _validator.ValidateAsync(validationContext);
                 var user = await _users.FindByNameAsync(model.Username);
                 if (user == null)
                 {
-                    var viewModel = await BuildLoginViewModelAsync(model.ReturnUrl);
-                    return View(viewModel);
+                    response.Message = "Invalid credentials.";
+                    return Json(response);
                 }
 
                 var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
@@ -198,14 +168,33 @@ namespace Fido2IdentityServer.Controllers.Account
                     {
                         var claimsIdentity = new ClaimsIdentity();
                         claimsIdentity.AddClaim(new Claim(JwtClaimTypes.Subject, user.Id));
-
                         await HttpContext.SignInAsync(_fido2AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-                        return RedirectToAction("Fido2Login", new { returnUrl = model.ReturnUrl, rememberLogin = model.RememberLogin });
+
+                        var fidoLogins = _authenticationContext.FidoLogins.Where(x => x.UserId == user.Id).Select(x => x.PublicKeyIdBytes);
+                        var existingKeys = new List<PublicKeyCredentialDescriptor>();
+                        foreach (var key in fidoLogins)
+                        {
+                            existingKeys.Add(new PublicKeyCredentialDescriptor(key));
+                        }
+
+                        var exts = new AuthenticationExtensionsClientInputs() { SimpleTransactionAuthorization = "FIDO", GenericTransactionAuthorization = new TxAuthGenericArg { ContentType = "text/plain", Content = new byte[] { 0x46, 0x49, 0x44, 0x4F } }, UserVerificationIndex = true, Location = true, UserVerificationMethod = true };
+                        var uv = UserVerificationRequirement.Preferred;
+                        var options = _lib.GetAssertionOptions(
+                            existingKeys,
+                            uv,
+                            exts
+                        );
+
+                        // 4. Temporarily store options, session/in-memory cache/redis/db
+                        HttpContext.Session.SetString("fido2.assertionOptions", options.ToJson());
+                        response.Options = options;
+                        response.TwoFactor = true;
+                        response.Success = true;
+                        return Json(response);
+                       
                     }
                     else
                     {
-
-
                         await _events.RaiseAsync(new UserLoginSuccessEvent(user.UserName, user.Id, user.UserName, clientId: context?.ClientId));
 
                         // only set explicit expiration here if user chooses "remember me". 
@@ -233,31 +222,32 @@ namespace Fido2IdentityServer.Controllers.Account
                             }
 
                             // we can trust model.ReturnUrl since GetAuthorizationContextAsync returned non-null
-                            return Redirect(model.ReturnUrl);
+                            response.ReturnUrl = model.ReturnUrl;
                         }
 
                         // request for a local page
                         if (Url.IsLocalUrl(model.ReturnUrl))
                         {
-                            return Redirect(model.ReturnUrl);
+                            response.ReturnUrl = model.ReturnUrl;
                         }
                         else if (string.IsNullOrEmpty(model.ReturnUrl))
                         {
-                            return Redirect("~/");
+                            response.ReturnUrl = "~/";
                         }
                         else
                         {
                             // user might have clicked on a malicious link - should be logged
                             throw new Exception("invalid return URL");
                         }
+
+                        response.Success = true;
+                        return Json(response);
                     }
                 }
-
             }
 
-            // something went wrong, show form with error
-            var vm = await BuildLoginViewModelAsync(model);
-            return View(vm);
+            response.Message = "Invalid credentials.";
+            return Json(response);
         }
 
         [HttpGet]
@@ -276,7 +266,6 @@ namespace Fido2IdentityServer.Controllers.Account
         }
 
         [HttpPost]
-     //   [ValidateAntiForgeryToken]
         public async Task<IActionResult> Fido2Login([FromForm] string loginType)
         {
             var returnUrl = HttpContext.Session.GetString("fido2.assertionOptions.returnUrl");
@@ -316,7 +305,7 @@ namespace Fido2IdentityServer.Controllers.Account
         }
 
         [HttpPost]
-        public async Task<IActionResult> Fido2LoginCallback ([FromBody] AuthenticatorAssertionRawResponse clientResponse)
+        public async Task<IActionResult> Fido2LoginCallback ([FromBody] AuthenticatorAssertionRawResponse clientResponse, [FromHeader] string returnUrl)
         {
             var info = await HttpContext.AuthenticateAsync(_fido2AuthenticationScheme);
             var tempUser = info?.Principal;
@@ -359,6 +348,11 @@ namespace Fido2IdentityServer.Controllers.Account
                 // 6. Store the updated counter
                 creds.SignatureCounter = res.Counter;
                 _authenticationContext.SaveChanges();
+
+                if (!string.IsNullOrEmpty(returnUrl))
+                {
+                    HttpContext.Session.SetString("fido2.assertionOptions.returnUrl", returnUrl);
+                }
 
                 // 7. return OK to client
                 return Json(new { success = true });
@@ -418,7 +412,7 @@ namespace Fido2IdentityServer.Controllers.Account
             }
             else if (string.IsNullOrEmpty(returnUrl))
             {
-                return Redirect("~/");
+                return RedirectToAction("Devices", "Fido");
             }
             else
             {

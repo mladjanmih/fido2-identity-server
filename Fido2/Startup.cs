@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Joonasw.AspNetCore.SecurityHeaders;
 
 namespace Fido2IdentityServer
 {
@@ -75,8 +76,16 @@ namespace Fido2IdentityServer
             {
                 app.UseExceptionHandler("/Home/Error");
                 // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-                app.UseHsts();
+              //  app.UseHsts();
             }
+            app.UseCsp(csp =>
+            {
+                csp.AllowScripts.FromAnywhere();
+                csp.AllowStyles.FromAnywhere();
+                csp.AllowStyles.AllowUnsafeInline();
+                csp.AllowScripts.AllowUnsafeInline();
+
+            });
             app.UseSession();
           //  app.UseHttpsRedirection();
             app.UseStaticFiles();

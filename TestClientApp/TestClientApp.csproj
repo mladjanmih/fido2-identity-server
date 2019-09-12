@@ -19,6 +19,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Fido2.Identity\Fido2IdentityServer.Identity.csproj" />
+    <ProjectReference Include="..\TestClientApp.Server\SmartCardSigner.Server.csproj" />
   </ItemGroup>
 
 </Project>

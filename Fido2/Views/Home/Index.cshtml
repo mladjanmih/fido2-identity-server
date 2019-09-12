@@ -1,39 +1,44 @@
+@model  Fido2IdentityServer.Controllers.Home.HomeViewModel;
 @{
     var version = typeof(IdentityServer4.Hosting.IdentityServerMiddleware).Assembly.GetName().Version.ToString();
 }
 
-<div class="welcome-page">
-    <div class="row page-header">
-        <div class="col-sm-10">
-            <h1>
-                <img class="icon" src="~/icon.jpg">
-                Welcome to IdentityServer4
-                <small>(version @version)</small>
-            </h1>
-        </div>
-    </div>
+<div class="view full-page-intro" style="background-image: url(@Url.Content("~/img/background.jpg")); background-repeat: no-repeat; background-size: cover; margin: 0;">
 
-    <div class="row">
-        <div class="col-sm-8">
-            <p>
-                IdentityServer publishes a
-                <a href="~/.well-known/openid-configuration">discovery document</a>
-                where you can find metadata and links to all the endpoints, key material, etc.
-            </p>
-        </div>
-        <div class="col-sm-8">
-            <p>
-                Click <a href="~/grants">here</a> to manage your stored grants.
-            </p>
-        </div>
+    <!-- Regiister form-->
+    <div class="mask rgba-black-light d-flex justify-content-center align-items-center">
+
+       <partial name="Partial/_HomeRegister.cshtml"| model="Model.Register"/>
+
     </div>
-    <div class="row">
-        <div class="col-sm-8">
-            <p>
-                Here are links to the
-                <a href="https://github.com/identityserver/IdentityServer4">source code repository</a>,
-                and <a href="https://github.com/IdentityServer/IdentityServer4/tree/master/samples">ready to use samples</a>.
-            </p>
-        </div>
-    </div>
+    <!-- Mask & flexbox options-->
+
 </div>
+<!-- Full Page Intro -->
+<!--Main layout-->
+<main>
+    <div class="container">
+
+        <!--Section: Password Login-->
+        <section class="mt-5 wow fadeIn">
+
+            <partial name="Partial/_HomePasswordLogin.cshtml" model="Model.Login" />
+
+        </section>
+        
+        <hr class="my-5">
+
+        <!--Section: Passwordless login-->
+        <section>
+
+            <partial name="Partial/_Fido2Details.cshtml" model="Model.Login"/>
+
+        </section>
+        <!--Section: Main features & Quick Start-->
+        <partial name="Partial/_HomeOther.cshtml" />
+
+    </div>
+</main>
+<!--Main layout-->
+<script src="~/js/login.js"></script>
+<script src="~/js/helpers.js"></script>

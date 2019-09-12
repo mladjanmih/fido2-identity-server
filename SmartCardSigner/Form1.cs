@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SmartCardSigner.Services;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -12,9 +13,22 @@ namespace SmartCardSigner
 {
     public partial class Form1 : Form
     {
+        //private ICertificateProvider _certificateProvider;
+
         public Form1()
         {
+            //_certificateProvider = new FileCertificateProvider();
             InitializeComponent();
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            //var cert = _certificateProvider.GetCertificate();
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
         }
     }
 }
