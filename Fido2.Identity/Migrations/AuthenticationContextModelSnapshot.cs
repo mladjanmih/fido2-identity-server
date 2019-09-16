@@ -56,10 +56,6 @@ namespace Fido2IdentityServer.Identity.Migrations
 
                     b.Property<decimal>("Amount");
 
-                    b.Property<string>("AuthenticatorData");
-
-                    b.Property<string>("ClientData");
-
                     b.Property<string>("CreditorAccount");
 
                     b.Property<string>("CreditorName");
@@ -68,19 +64,41 @@ namespace Fido2IdentityServer.Identity.Migrations
 
                     b.Property<string>("DebtorName");
 
-                    b.Property<bool>("HasSignature");
-
-                    b.Property<string>("PublicKeyId");
-
                     b.Property<DateTime>("RequestDateTime");
 
-                    b.Property<string>("Signature");
+                    b.Property<string>("Status");
 
                     b.Property<string>("UserId");
 
                     b.HasKey("Id");
 
                     b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("Fido2IdentityServer.Identity.Models.PaymentAuthorization", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("AuthenticatorData");
+
+                    b.Property<DateTime>("AuthorizationDateTime");
+
+                    b.Property<string>("ClientData");
+
+                    b.Property<string>("PaymentId");
+
+                    b.Property<string>("PublicKeyId");
+
+                    b.Property<string>("Signature");
+
+                    b.Property<int>("Type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentId");
+
+                    b.ToTable("PaymentAuthorizations");
                 });
 
             modelBuilder.Entity("Fido2IdentityServer.Identity.Models.Role", b =>
@@ -177,6 +195,28 @@ namespace Fido2IdentityServer.Identity.Migrations
                     b.ToTable("Users");
                 });
 
+            modelBuilder.Entity("Fido2IdentityServer.Identity.Models.UserCertificate", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("Certificate");
+
+                    b.Property<DateTime>("RegistrationDate");
+
+                    b.Property<string>("Subject");
+
+                    b.Property<string>("Thumbprint");
+
+                    b.Property<string>("UserId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("UserCertificates");
+                });
+
             modelBuilder.Entity("Fido2IdentityServer.Identity.Models.UserClaim", b =>
                 {
                     b.Property<int>("Id")
@@ -250,12 +290,27 @@ namespace Fido2IdentityServer.Identity.Migrations
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 
+            modelBuilder.Entity("Fido2IdentityServer.Identity.Models.PaymentAuthorization", b =>
+                {
+                    b.HasOne("Fido2IdentityServer.Identity.Models.Payment", "Payment")
+                        .WithMany("PaymentAuthorizations")
+                        .HasForeignKey("PaymentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
             modelBuilder.Entity("Fido2IdentityServer.Identity.Models.RoleClaim", b =>
                 {
                     b.HasOne("Fido2IdentityServer.Identity.Models.Role")
                         .WithMany()
                         .HasForeignKey("RoleId")
                         .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("Fido2IdentityServer.Identity.Models.UserCertificate", b =>
+                {
+                    b.HasOne("Fido2IdentityServer.Identity.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
                 });
 
             modelBuilder.Entity("Fido2IdentityServer.Identity.Models.UserClaim", b =>

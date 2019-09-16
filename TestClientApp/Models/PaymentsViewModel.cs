@@ -29,6 +29,7 @@ namespace TestClientApp.Models
         
         public DateTime RequestDateTime { get; set; }
         
+        public DateTime? AuthorizationDateTime { get; set; }
         public bool HasSignature { get; set; }
     }
 }

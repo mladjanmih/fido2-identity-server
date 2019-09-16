@@ -30,7 +30,7 @@
                                 <td>
                                     <form asp-action="RemoveLogin" asp-route-loginId="@device.Id">
 
-                                        <button class="btn btn-primary" type="submit" name="button" value="@device.CredentialType">Remove</button>
+                                        <button class="btn btn-indigo" type="submit" name="button" value="@device.CredentialType">Remove</button>
                                     </form>
                                 </td>
                             </tr>
@@ -57,12 +57,15 @@
             }
         </section>
         <section>
-            <form asp-action="FidoRegister" method="post">
-                <button class="btn btn-primary" type="submit" name="button" value="yubikey">Register Yubikey</button>
-                <button class="btn btn-primary" type="submit" name="button" value="windows-hello">Register Windows Hello</button>
+            <form asp-action="FidoRegister" method="post" id="registerDevice">
+                <button class="btn btn-indigo" type="submit" name="button" value="register_device">Register New Device</button>
+                @*<button class="btn btn-primary" type="submit" name="button" value="windows-hello">Register Windows Hello</button>*@
             </form>
         </section>
 
 
     </div>
 </main>
+
+<script src="~/js/registerDevice.js"></script>
+<script src="~/js/helpers.js"></script>

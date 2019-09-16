@@ -134,6 +134,7 @@ namespace Fido2IdentityServer.Controllers.Account
                 return RedirectToAction("Challenge", "External", new { provider = vm.ExternalLoginScheme, returnUrl });
             }
 
+            TempData["Page"] = "Login";
             return View(vm);
         }
 
@@ -161,35 +162,50 @@ namespace Fido2IdentityServer.Controllers.Account
                     return Json(response);
                 }
 
+                if (model.Passwordless)
+                {
+
+                    if (!_authenticationContext.FidoLogins.Where(x => x.UserId == user.Id).Any())
+                    {
+                        response.Message = "Passwordless login not enabled for this user.";
+                        return Json(response);
+                    }
+
+                    HttpContext.Session.SetString("fido2.assertionOptions.rememberLogin", model.RememberLogin.ToString());
+                    if (!string.IsNullOrEmpty(model.ReturnUrl))
+                    {
+                        HttpContext.Session.SetString("fido2.assertionOptions.returnUrl", model.ReturnUrl);                     
+                    }
+
+                    var options = await PrepareFidoLogin(user);
+                    response.Options = options;
+                    response.FidoLogin = true;
+                    response.Success = true;
+                    return Json(response);
+                }
+
                 var result = _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, model.Password);
                 if (result == PasswordVerificationResult.Success)
                 {
                     if (user.TwoFactorEnabled)
                     {
-                        var claimsIdentity = new ClaimsIdentity();
-                        claimsIdentity.AddClaim(new Claim(JwtClaimTypes.Subject, user.Id));
-                        await HttpContext.SignInAsync(_fido2AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
-
-                        var fidoLogins = _authenticationContext.FidoLogins.Where(x => x.UserId == user.Id).Select(x => x.PublicKeyIdBytes);
-                        var existingKeys = new List<PublicKeyCredentialDescriptor>();
-                        foreach (var key in fidoLogins)
+                        var options = await PrepareFidoLogin(user);
+                        if (options != null)
                         {
-                            existingKeys.Add(new PublicKeyCredentialDescriptor(key));
+                            HttpContext.Session.SetString("fido2.assertionOptions.rememberLogin", model.RememberLogin.ToString());
+                            if (!string.IsNullOrEmpty(model.ReturnUrl))
+                            {
+                                HttpContext.Session.SetString("fido2.assertionOptions.returnUrl", model.ReturnUrl);
+                            }
+                            response.Options = options;
+                            response.FidoLogin = true;
+                            response.Success = true;
                         }
-
-                        var exts = new AuthenticationExtensionsClientInputs() { SimpleTransactionAuthorization = "FIDO", GenericTransactionAuthorization = new TxAuthGenericArg { ContentType = "text/plain", Content = new byte[] { 0x46, 0x49, 0x44, 0x4F } }, UserVerificationIndex = true, Location = true, UserVerificationMethod = true };
-                        var uv = UserVerificationRequirement.Preferred;
-                        var options = _lib.GetAssertionOptions(
-                            existingKeys,
-                            uv,
-                            exts
-                        );
-
-                        // 4. Temporarily store options, session/in-memory cache/redis/db
-                        HttpContext.Session.SetString("fido2.assertionOptions", options.ToJson());
-                        response.Options = options;
-                        response.TwoFactor = true;
-                        response.Success = true;
+                        else
+                        {
+                            response.Success = false;
+                            response.Message = "Two factor login not enabled for this user!";
+                        }
                         return Json(response);
                        
                     }
@@ -240,6 +256,11 @@ namespace Fido2IdentityServer.Controllers.Account
                             throw new Exception("invalid return URL");
                         }
 
+                        HttpContext.Session.SetString("fido2.assertionOptions.rememberLogin", model.RememberLogin.ToString());
+                        if (!string.IsNullOrEmpty(model.ReturnUrl))
+                        {
+                            HttpContext.Session.SetString("fido2.assertionOptions.returnUrl", model.ReturnUrl);
+                        }
                         response.Success = true;
                         return Json(response);
                     }
@@ -248,60 +269,6 @@ namespace Fido2IdentityServer.Controllers.Account
 
             response.Message = "Invalid credentials.";
             return Json(response);
-        }
-
-        [HttpGet]
-        public async Task<IActionResult> Fido2Login(string returnUrl, bool rememberLogin)
-        {
-            var info = await HttpContext.AuthenticateAsync(_fido2AuthenticationScheme);
-            var tempUser = info?.Principal;
-            if (tempUser == null) return RedirectToAction("Login", new { returnUrl });
-            var user = await _users.FindByIdAsync(tempUser.GetSubjectId());
-
-            var vm = BuildFido2LoginViewModel(returnUrl, rememberLogin, user);
-
-            HttpContext.Session.SetString("fido2.assertionOptions.returnUrl", string.IsNullOrEmpty(returnUrl) ? string.Empty : returnUrl);
-            HttpContext.Session.SetString("fido2.assertionOptions.rememberLogin", rememberLogin.ToString());
-            return View(vm);
-        }
-
-        [HttpPost]
-        public async Task<IActionResult> Fido2Login([FromForm] string loginType)
-        {
-            var returnUrl = HttpContext.Session.GetString("fido2.assertionOptions.returnUrl");
-            var remLogStr = HttpContext.Session.GetString("fido2.assertionOptions.rememberLogin");
-            var rememberLogin = string.IsNullOrEmpty(remLogStr) ? false : bool.Parse(remLogStr);
-
-            var info = await HttpContext.AuthenticateAsync(_fido2AuthenticationScheme);
-            var tempUser = info?.Principal;
-            if (tempUser == null) return null;//return RedirectToAction("Login", new { returnUrl });
-            var user = await _users.FindByIdAsync(tempUser.GetSubjectId());
-
-            if (string.IsNullOrEmpty(loginType))
-            {
-                //var vm = BuildFido2LoginViewModel(returnUrl, rememberLogin, user);
-                //return View("Fido2Login", vm);
-                return null;
-            }
-
-            var fidoLogins = _authenticationContext.FidoLogins.Where(x => x.UserId == user.Id && x.AuthenticatorName == loginType).Select(x => x.PublicKeyIdBytes);
-            var existingKeys = new List<PublicKeyCredentialDescriptor>();
-            foreach (var key in fidoLogins)
-            {
-                existingKeys.Add(new PublicKeyCredentialDescriptor(key));
-            }
-            var exts = new AuthenticationExtensionsClientInputs() { SimpleTransactionAuthorization = "FIDO", GenericTransactionAuthorization = new TxAuthGenericArg { ContentType = "text/plain", Content = new byte[] { 0x46, 0x49, 0x44, 0x4F } }, UserVerificationIndex = true, Location = true, UserVerificationMethod = true };
-
-            var uv = UserVerificationRequirement.Preferred;
-            var options = _lib.GetAssertionOptions(
-                existingKeys,
-                uv,
-                exts
-            );
-        
-            // 4. Temporarily store options, session/in-memory cache/redis/db
-            HttpContext.Session.SetString("fido2.assertionOptions", options.ToJson());
-            return Json(options);
         }
 
         [HttpPost]
@@ -348,11 +315,6 @@ namespace Fido2IdentityServer.Controllers.Account
                 // 6. Store the updated counter
                 creds.SignatureCounter = res.Counter;
                 _authenticationContext.SaveChanges();
-
-                if (!string.IsNullOrEmpty(returnUrl))
-                {
-                    HttpContext.Session.SetString("fido2.assertionOptions.returnUrl", returnUrl);
-                }
 
                 // 7. return OK to client
                 return Json(new { success = true });
@@ -421,13 +383,45 @@ namespace Fido2IdentityServer.Controllers.Account
             }
         }
 
-        public async Task<IActionResult> Fido2LoginFailed()
-        {
-            var returnUrl = HttpContext.Session.GetString("fido2.assertionOptions.returnUrl");
-            var remLogStr = HttpContext.Session.GetString("fido2.assertionOptions.rememberLogin");
-            var rememberLogin = string.IsNullOrEmpty(remLogStr) ? false : bool.Parse(remLogStr);
+        //public IActionResult Fido2LoginFailed()
+        //{
+        //    var returnUrl = HttpContext.Session.GetString("fido2.assertionOptions.returnUrl");
+        //    var remLogStr = HttpContext.Session.GetString("fido2.assertionOptions.rememberLogin");
+        //    var rememberLogin = string.IsNullOrEmpty(remLogStr) ? false : bool.Parse(remLogStr);
 
-            return RedirectToAction("Fido2Login", new { returnUrl, rememberLogin });
+        //    return RedirectToAction("Fido2Login", new { returnUrl, rememberLogin });
+        //}
+
+        private async Task<AssertionOptions> PrepareFidoLogin(User user)
+        {
+            var claimsIdentity = new ClaimsIdentity();
+            claimsIdentity.AddClaim(new Claim(JwtClaimTypes.Subject, user.Id));
+            await HttpContext.SignInAsync(_fido2AuthenticationScheme, new ClaimsPrincipal(claimsIdentity));
+
+            var fidoLogins = _authenticationContext.FidoLogins.Where(x => x.UserId == user.Id).Select(x => x.PublicKeyIdBytes);
+            if (fidoLogins.Count() < 1)
+            {
+                return null;
+            }
+
+            var existingKeys = new List<PublicKeyCredentialDescriptor>();
+            foreach (var key in fidoLogins)
+            {
+                existingKeys.Add(new PublicKeyCredentialDescriptor(key));
+            }
+
+            var exts = new AuthenticationExtensionsClientInputs() { SimpleTransactionAuthorization = "FIDO", GenericTransactionAuthorization = new TxAuthGenericArg { ContentType = "text/plain", Content = new byte[] { 0x46, 0x49, 0x44, 0x4F } }, UserVerificationIndex = true, Location = true, UserVerificationMethod = true };
+            var uv = UserVerificationRequirement.Preferred;
+            var options = _lib.GetAssertionOptions(
+                existingKeys,
+                uv,
+                exts
+            );
+
+            // 4. Temporarily store options, session/in-memory cache/redis/db
+            HttpContext.Session.SetString("fido2.assertionOptions", options.ToJson());
+
+            return options;
         }
 
         private Fido2LoginViewModel BuildFido2LoginViewModel(string returnUrl, bool rememberLogin, User user)
@@ -443,6 +437,7 @@ namespace Fido2IdentityServer.Controllers.Account
             return vm;
         }
 
+        #region Logout
         /// <summary>
         /// Show logout page
         /// </summary>
@@ -494,8 +489,14 @@ namespace Fido2IdentityServer.Controllers.Account
                 return SignOut(new AuthenticationProperties { RedirectUri = url }, vm.ExternalAuthenticationScheme);
             }
 
-            return View("LoggedOut", vm);
+            if (string.IsNullOrEmpty(vm.PostLogoutRedirectUri))
+                return RedirectToAction("Index", "Home");
+            else
+                return Redirect(vm.PostLogoutRedirectUri);
+
         }
+
+        #endregion
 
         [HttpGet]
         public IActionResult AccessDenied()
@@ -503,6 +504,7 @@ namespace Fido2IdentityServer.Controllers.Account
             return View();
         }
 
+        #region Register
         [HttpGet]
         public async Task<IActionResult> Register()
         {
@@ -570,11 +572,12 @@ namespace Fido2IdentityServer.Controllers.Account
 
             return RedirectToAction("Index", "Home");      
         }
+        #endregion
 
         /*****************************************/
         /* helper APIs for the AccountController */
         /*****************************************/
-
+        #region Helpers
         private async Task<RegisterViewModel> BuildRegisterViewModelAsync(RegisterViewModel model)
         {
             return new RegisterViewModel()
@@ -714,5 +717,7 @@ namespace Fido2IdentityServer.Controllers.Account
 
             return vm;
         }
+
+        #endregion
     }
 }

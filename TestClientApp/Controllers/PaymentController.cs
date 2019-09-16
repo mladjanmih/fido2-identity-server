@@ -54,11 +54,10 @@ namespace TestClientApp.Controllers
                 CreditorName = model.CreditorName,
                 DebtorName = model.DebtorName,
                 RequestDateTime = DateTime.Now,
-                UserId = sub
+                UserId = sub,
+                Status = "received"
             });
 
-            //var result = Redirect($"{_configuration["Identity"]}/Fido/PaymentDigitalSignature?paymentId={paymentId}&returnUrl=https://localhost:44342/Payment/PaymentSigningCallback");
-            //return result;
             var vm = BuildPaymentsViewModel();
             return View("Index", vm);
         }
@@ -77,38 +76,11 @@ namespace TestClientApp.Controllers
             }
         }
 
-        public IActionResult PaymentSigningCallback(string paymentId)
+        public IActionResult PaymentSigningCallback(bool success)
         {
-            var payment = _paymentStore.GetPayment(paymentId);
-            if (payment == null)
-            {
-                var vm = BuildPaymentsViewModel();
-                vm.SigningSuccess = false;
-                return View("Index", vm);
-            }
-
-            var pk = _authenticaationContext.FidoLogins.First(x => x.PublicKeyId == payment.PublicKeyId);
-
-            byte[] hashedClientDataJson;
-            using (var sha = SHA256.Create())
-            {
-                hashedClientDataJson = sha.ComputeHash(Fido2NetLib.Base64Url.Decode(payment.ClientData));
-            }
-
-            var authenticatorData = Fido2NetLib.Base64Url.Decode(payment.AuthenticatorData);
-            byte[] data = new byte[authenticatorData.Length + hashedClientDataJson.Length];
-            Buffer.BlockCopy(authenticatorData, 0, data, 0, authenticatorData.Length);
-            Buffer.BlockCopy(hashedClientDataJson, 0, data, authenticatorData.Length, hashedClientDataJson.Length);
-            var cpk = new Fido2NetLib.Objects.CredentialPublicKey(pk.PublicKey);
-            if (true != cpk.Verify(data, Fido2NetLib.Base64Url.Decode(payment.Signature)))
-            {
-                var vm = BuildPaymentsViewModel();
-                vm.SigningSuccess = false;
-                return View("Index", vm);
-            }
-            var retvm = BuildPaymentsViewModel();
-            retvm.SigningSuccess = true;
-            return View("Index", retvm);
+            var vm = BuildPaymentsViewModel();
+            vm.SigningSuccess = success;
+            return View("Index", vm);
         }
 
         private PaymentsViewModel BuildPaymentsViewModel()
@@ -118,6 +90,7 @@ namespace TestClientApp.Controllers
             var vm = new PaymentsViewModel();
             foreach (var p in payments)
             {
+                var authorization = p.PaymentAuthorizations.FirstOrDefault();
                 vm.Payments.Add(new PaymentViewModel()
                 {
                     CreditorAccount = p.CreditorAccount,
@@ -127,8 +100,10 @@ namespace TestClientApp.Controllers
                     DebtorAccount = p.DebtorAccount,
                     DebtorName = p.DebtorName,
                     PaymentId = p.Id,
-                    HasSignature = p.HasSignature
+                    HasSignature = p.PaymentAuthorizations.Any(),
+                    AuthorizationDateTime = authorization?.AuthorizationDateTime
                 });
+
             }
 
 

@@ -27,4 +27,10 @@
     <ProjectReference Include="..\Fido2.Identity\Fido2IdentityServer.Identity.csproj" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <Folder Include="Attributes\" />
+    <Folder Include="Certificates\" />
+  </ItemGroup>
+
 </Project>

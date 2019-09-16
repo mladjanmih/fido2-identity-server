@@ -54,13 +54,16 @@
     </style>
 </head>
 <body>
-    @if ((string)TempData["Page"] == "Index")
+    @{ 
+    var page = (string)TempData["Page"];
+    if (page == "Index" || page == "Login")
     {
         @:<nav class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar">
-        }
-        else
-        {
-            @:<nav class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar top-nav-collapse">
+    }
+    else
+    {
+        @:<nav class="navbar fixed-top navbar-expand-lg navbar-dark scrolling-navbar top-nav-collapse">
+    }
     }
     <!-- Navbar -->
     <div class="container">
@@ -87,15 +90,19 @@
                         <span class="sr-only">(current)</span>
                     </a>
                 </li>
-                @*<li class="nav-item">
-                        <a class="nav-link" href="https://mdbootstrap.com/docs/jquery/" target="_blank">About MDB</a>
+
+                @if (!string.IsNullOrWhiteSpace(name))
+                {
+                    <li class="nav-item">
+                        <a class="nav-link" href="~/Fido/Devices">Devices</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="https://mdbootstrap.com/docs/jquery/getting-started/download/" target="_blank">Free download</a>
+                        <a class="nav-link" href="~/Account/Logout">Logout</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="https://mdbootstrap.com/education/bootstrap/" target="_blank">Free tutorials</a>
-                    </li>*@
+                        <a class="nav-link" href="~/Certificate">Certificates</a>
+                    </li>
+                }
             </ul>
 
             <!-- Right -->
@@ -193,6 +200,7 @@
 <!--/.Footer-->
 <!-- SCRIPTS -->
 <!-- JQuery -->
+    @RenderSection("scripts", required: false);
 <script type="text/javascript" src="~/js/jquery-3.4.1.min.js"></script>
 <!-- Bootstrap tooltips -->
 <script type="text/javascript" src="~/js/popper.min.js"></script>
@@ -204,6 +212,7 @@
 <script type="text/javascript">
     // Animations initialization
     new WOW().init();
+
 </script>
 </body>
 </html>

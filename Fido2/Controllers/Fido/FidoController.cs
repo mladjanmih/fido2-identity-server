@@ -3,11 +3,14 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Threading.Tasks;
 using Fido2IdentityServer.Identity;
 using Fido2IdentityServer.Identity.Models;
+using Fido2IdentityServer.Models;
 using Fido2IdentityServer.Utilities;
 using Fido2NetLib;
 using Fido2NetLib.Objects;
@@ -86,14 +89,13 @@ namespace Fido2IdentityServer.Controllers.Fido
             {
                 return RedirectToAction("Index", "Home");
             }
+
             var user = await _users.FindByIdAsync(sub);
             if (user == null)
             {
                 return RedirectToAction("Index", "Home");
             }
 
-
-           
             var existingDbKeys = _authContext.FidoLogins.Where(x => x.UserId == user.Id).Select(x => x.PublicKeyIdBytes);
             var existingKeys = new List<PublicKeyCredentialDescriptor>();
             foreach (var key in existingDbKeys)
@@ -101,9 +103,7 @@ namespace Fido2IdentityServer.Controllers.Fido
                 existingKeys.Add(new PublicKeyCredentialDescriptor(key));
             }
 
-            //OVDE SI PRESKOCIO EKSTENZIJE
             var exts = new AuthenticationExtensionsClientInputs() { Extensions = true, UserVerificationIndex = true, Location = true, UserVerificationMethod = true, BiometricAuthenticatorPerformanceBounds = new AuthenticatorBiometricPerfBounds { FAR = float.MaxValue, FRR = float.MaxValue } };
-            
             Fido2User f2User = new Fido2User()
             {
                 DisplayName = user.DisplayName,
@@ -112,50 +112,14 @@ namespace Fido2IdentityServer.Controllers.Fido
             };
             var authSelect = new AuthenticatorSelection()
             {
-                
-                RequireResidentKey = true,
+
+                RequireResidentKey = false,
                 UserVerification = UserVerificationRequirement.Preferred
             };
 
-            List<PubKeyCredParam> pubKeyCredParams = null;
-            switch(button)
-            {
-                case "yubikey":
-                    authSelect.AuthenticatorAttachment = AuthenticatorAttachment.CrossPlatform;
-                    pubKeyCredParams = new List<PubKeyCredParam>()
-                    {
-                        new PubKeyCredParam
-                        {
-                            Type = PublicKeyCredentialType.PublicKey,
-                            Alg = -7
-                        }
-                    };
-                    HttpContext.Session.SetString("fido2.attestationOptions.authenticatorType", "yubikey");
-                    break;
-                case "windows-hello":
-                    authSelect.AuthenticatorAttachment = AuthenticatorAttachment.Platform;
-                    pubKeyCredParams = new List<PubKeyCredParam>()
-                    {
-                        new PubKeyCredParam
-                        {
-                            Type = PublicKeyCredentialType.PublicKey,
-                            Alg = -257
-                        }
-                    };
-                    HttpContext.Session.SetString("fido2.attestationOptions.authenticatorType", "windows-hello");
-                    break;
-            }
-         //   AuthenticationExtensionsClientInputs
             var options = _lib.RequestNewCredential(f2User, existingKeys, authSelect, AttestationConveyancePreference.Direct, exts);
-            if (pubKeyCredParams != null)
-            {
-                options.PubKeyCredParams = pubKeyCredParams;
-            }
-
             HttpContext.Session.SetString("fido2.attestationOptions", options.ToJson());
-            var challenge = CryptoRandom.CreateRandomKeyString(16);
-            return View(new RegisterViewModel() { Challenge = challenge, CredentialCreateOptions = options });
-            //            return View(new RegisterViewModel { Challenge = challenge, RelyingPartyId = RelyingPartyId, Username = user.UserName });
+            return Json(options);
         }
 
         [HttpPost]
@@ -189,6 +153,8 @@ namespace Fido2IdentityServer.Controllers.Fido
 
                 // 2. Verify and make the credentials
                 var success = await _lib.MakeNewCredentialAsync(model, options, callback);
+                var parsedResponse = AuthenticatorAttestationResponse.Parse(model); ;
+                var authData = new AuthenticatorData(parsedResponse.AttestationObject.AuthData);
                 var dbUser = _authContext.Users.First(x => x.Id == user.Id);
                 dbUser.TwoFactorEnabled = true;
                 var login = new FidoLogin()
@@ -275,34 +241,69 @@ namespace Fido2IdentityServer.Controllers.Fido
         }
 
         [HttpPost]
-        public async Task<IActionResult> AssertDigitalSignature([FromForm] string authenticator, [FromHeader] string PaymentId)
+        public async Task<IActionResult> AssertDigitalSignature([FromForm] string authType, [FromHeader] string PaymentId)
         {
             var sub = HttpContext.User.Claims.FirstOrDefault(x => x.Type == "sub")?.Value;
             var user = await _users.FindByIdAsync(sub);
             
-            if (string.IsNullOrEmpty(authenticator))
+            if (string.IsNullOrEmpty(authType))
             {
                 //var vm = BuildFido2LoginViewModel(returnUrl, rememberLogin, user);
                 //return View("Fido2Login", vm);
-                return Json(new { });
+                return Json(new { message = "Invalid authenticator type." });
             }
 
-            var fidoLogin = _authContext.FidoLogins.First(x => x.AaGuid == authenticator && x.UserId == user.Id);
+            var result = new AssertDigitalSignatureResponse();
+
+            switch(authType.ToLower())
+            {
+                case "fido2":
+                    result.Type = "fido2";
+                    result.AssertionOptions = MakeFido2AssertionOptions(user, PaymentId);
+                    break;
+
+                case "smart_card":
+                    result.SmartCardOptions = MakeSmartCardOptions(user, PaymentId);
+                    result.Type = "smart_card";
+                    break;
+
+                default:
+                    return Json(new { message = "Invalid authenticator type." });
+            }
+
+         
+            return Json(result);
+        }
+
+
+        private SmartCardOptions MakeSmartCardOptions(User user, string paymentId)
+        {
+            var payment = _authContext.Payments.First(x => x.Id == paymentId);
+            var payloadObj = new
+            {
+                paymentId = payment.Id,
+                sub = payment.UserId,
+                amount = payment.Amount
+            };
+            var payloadStr = JsonConvert.SerializeObject(payloadObj);
+            var options = new SmartCardOptions()
+            {
+                Payload = payloadStr
+            };
+            HttpContext.Session.SetString("smartCard.paymentId", paymentId);
+            HttpContext.Session.SetString("smartCard.payload", payloadStr);
+            return options;
+        }
+
+        private AssertionOptions MakeFido2AssertionOptions(User user, string paymentId)
+        {
+            var fidoLogins = _authContext.FidoLogins.Where(x => x.UserId == user.Id);
             var existingKeys = new List<PublicKeyCredentialDescriptor>();
-            existingKeys.Add(new PublicKeyCredentialDescriptor(fidoLogin.PublicKeyIdBytes));
-
-            var coseStruct = CBORObject.DecodeFromBytes(fidoLogin.PublicKey);
-            var key = JsonConvert.DeserializeObject<Identity.Models.CredentialPublicKey>(coseStruct.ToJSONString());
-
-
-            //Convert header to string
-            var headerString = AlgorithmUtilities.GetJWTHeader(key, coseStruct.ToJSONString());
-
-            //Convert header to bytes
-            var headerBytes = System.Text.Encoding.UTF8.GetBytes(headerString);
+            foreach(var key in fidoLogins)
+                existingKeys.Add(new PublicKeyCredentialDescriptor(key.PublicKeyIdBytes));
 
             //Getting data to sign
-            var payment = _authContext.Payments.First(x => x.Id == PaymentId);
+            var payment = _authContext.Payments.First(x => x.Id == paymentId);
             var payloadObj = new
             {
                 paymentId = payment.Id,
@@ -311,11 +312,9 @@ namespace Fido2IdentityServer.Controllers.Fido
             var payloadStr = JsonConvert.SerializeObject(payloadObj);
             var payload = Encoding.UTF8.GetBytes(payloadStr);
 
-         // var jwk = new IdentityModel.Jwk.JsonWebKey(headerString);
-         //   var challenge = IdentityModel.Base64Url.Encode(headerBytes) + "." + Fido2NetLib.Base64Url.Encode(payload);
             var challenge = Fido2NetLib.Base64Url.Encode(payload);
             HttpContext.Session.SetString("fido2.assertionChallenge", challenge);
-            HttpContext.Session.SetString("fido2.paymentId", PaymentId);
+            HttpContext.Session.SetString("fido2.paymentId", paymentId);
             var exts = new AuthenticationExtensionsClientInputs() { SimpleTransactionAuthorization = "FIDO", GenericTransactionAuthorization = new TxAuthGenericArg { ContentType = "text/plain", Content = new byte[] { 0x46, 0x49, 0x44, 0x4F } }, UserVerificationIndex = true, Location = true, UserVerificationMethod = true };
             var uv = UserVerificationRequirement.Preferred;
             var options = _lib.GetAssertionOptions(
@@ -325,10 +324,10 @@ namespace Fido2IdentityServer.Controllers.Fido
             );
 
             options.Challenge = Encoding.UTF8.GetBytes(challenge);
-           
+
             // 4. Temporarily store options, session/in-memory cache/redis/db
             HttpContext.Session.SetString("fido2.assertionOptions", options.ToJson());
-            return Json(options);
+            return options;
         }
 
         [HttpPost]
@@ -377,17 +376,20 @@ namespace Fido2IdentityServer.Controllers.Fido
                 var payment = _authContext.Payments.First(x => x.Id == paymentId);
                 var signature = Fido2NetLib.Base64Url.Encode(clientResponse.Response.Signature);
 
-                payment.HasSignature = true;
-                payment.PublicKeyId = creds.PublicKeyId;
-                payment.AuthenticatorData = Fido2NetLib.Base64Url.Encode(clientResponse.Response.AuthenticatorData);
-                payment.Signature = signature;
-                payment.ClientData = Fido2NetLib.Base64Url.Encode(clientResponse.Response.ClientDataJson);
+                var paymentAuthorization = new PaymentAuthorization()
+                {
+                    Payment = payment,
+                    PublicKeyId = creds.PublicKeyId,
+                    Signature = signature,
+                    Type = (int)DeviceType.FIDO2,
+                    AuthorizationDateTime = DateTime.Now,
+                    ClientData = Fido2NetLib.Base64Url.Encode(clientResponse.Response.ClientDataJson),
+                    AuthenticatorData = Fido2NetLib.Base64Url.Encode(clientResponse.Response.AuthenticatorData)
+                };
 
-                //HttpContext.Session.SetString("fido2.assertionSignature", signature);
-                //HttpContext.Session.SetString("fido2.publicKeyId", creds.PublicKeyId);
-                //HttpContext.Session.SetString("fido2.clientData", Fido2NetLib.Base64Url.Encode(clientResponse.Response.ClientDataJson));
-                //HttpContext.Session.SetString("fido2.authenticatorData", Fido2NetLib.Base64Url.Encode(clientResponse.Response.AuthenticatorData));
-     
+                _authContext.PaymentAuthorizations.Add(paymentAuthorization);
+                payment.Status = "authorized";
+
                 // 6. Store the updated counter
                 creds.SignatureCounter = res.Counter;
                 _authContext.SaveChanges();
@@ -401,6 +403,73 @@ namespace Fido2IdentityServer.Controllers.Fido
             }
         }
 
+        [HttpPost]
+        public async Task<IActionResult> SmartCardDigitalSignatureCallback([FromBody] SmartCardAuthorizationResponse smartCardAuthorizationResponse)
+        {
+            var sub = HttpContext.User.Claims.FirstOrDefault(x => x.Type == "sub")?.Value;
+            if (string.IsNullOrEmpty(sub))
+            {
+                return Json(new { success = false });
+            }
+
+            var user = await _users.FindByIdAsync(sub);
+            if (user == null)
+            {
+                return Json(new { success = false });
+            }
+
+            if (smartCardAuthorizationResponse == null || string.IsNullOrEmpty(smartCardAuthorizationResponse.Certificate) || string.IsNullOrEmpty(smartCardAuthorizationResponse.Token))
+            {
+                return Json(new { success = false });
+            }
+
+            var certificate = CertificateUtilities.GetAndValidateCertificate(smartCardAuthorizationResponse.Certificate, _authContext);
+            if (certificate == null)
+            {
+                return Json(new { success = false });
+            }
+
+            //Get session data
+            var paymentId = HttpContext.Session.GetString("smartCard.paymentId");
+            var payload = HttpContext.Session.GetString("smartCard.payload");
+
+            var verifyResult = JwtUtils.ValidateJWT(
+                certificate,
+                smartCardAuthorizationResponse.Token,
+                smartCardAuthorizationResponse.Algorithm,
+                payload);
+
+            //Verify that decoded payload is the same as sent payload
+            if (verifyResult)
+            {
+                try
+                {
+                    //Store authorization
+                    var payment = _authContext.Payments.First(x => x.Id == paymentId);
+                    var paymentAuthorization = new PaymentAuthorization()
+                    {
+                        AuthenticatorData = smartCardAuthorizationResponse.Certificate,
+                        AuthorizationDateTime = DateTime.Now,
+                        Payment = payment,
+                        Signature = smartCardAuthorizationResponse.Token,
+                        Type = (int)DeviceType.SMART_CARD
+                    };
+                    payment.Status = "authorized";
+                    _authContext.PaymentAuthorizations.Add(paymentAuthorization);
+                    _authContext.SaveChanges();
+                    return Json(new { success = true });
+                }
+                catch(Exception e)
+                {
+                    return Json(new { success = false });
+                }
+            }
+            else
+            {
+                return Json(new { success = false });
+            }
+        }
+
         public IActionResult DigitalSigningFailed()
         {
             var returnUrl = HttpContext.Session.GetString("fido2.returnUrl");
@@ -409,14 +478,18 @@ namespace Fido2IdentityServer.Controllers.Fido
                 return RedirectToAction("Devices");
             }
 
-            return Redirect(returnUrl);
+            return Redirect(returnUrl + "?success=false");
         }
 
         public IActionResult DigitalSigningSuccess()
         {
             var returnUrl = HttpContext.Session.GetString("fido2.returnUrl");
-            var paymentId= HttpContext.Session.GetString("fido2.paymentId");
-            return Redirect(returnUrl + "?paymentId=" + paymentId);
+            if (string.IsNullOrEmpty(returnUrl))
+            {
+                return RedirectToAction("Devices");
+            }
+
+            return Redirect(returnUrl + "?success=true");
         }
 
         [ValidateAntiForgeryToken]
@@ -461,12 +534,13 @@ namespace Fido2IdentityServer.Controllers.Fido
 
         private void AddAuthenticatorsToViewModel(PaymentDigitalSignatureViewModel model, User user)
         {
-            var authenticators = _authContext.FidoLogins.Where(x => x.UserId == user.Id);           
-            foreach (var authenticator in authenticators)
+            var authenticators = _authContext.FidoLogins.Where(x => x.UserId == user.Id);
+            if (authenticators.Any())
             {
-                model.AuthenticatorTypes.Add(new KeyValuePair<string, string>(authenticator.AuthenticatorName, authenticator.AaGuid));
+                model.Fido2Registered = true;
             }
 
+            model.SmartCardRegistered = true;
         //    model.AuthenticatorTypes = model.AuthenticatorTypes.Distinct().ToList();
         }
 

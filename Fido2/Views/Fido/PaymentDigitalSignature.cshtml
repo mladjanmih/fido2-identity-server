@@ -3,41 +3,86 @@
     ViewData["Title"] = "PaymentDigitalSignature";
 }
 
-<h2>Payment Data</h2>
-<dl>
-    <dt>Payment Identificator</dt>
-    <dd>@Model.PaymentId</dd>
-
-    <dt>Creditor Account</dt>
-    <dd>@Model.CreditorAccount</dd>
-
-    <dt>Debtor Account</dt>
-    <dd>@Model.DebtorAccount</dd>   
-
-    <dt>Subject</dt>
-    <dd>@Model.UserId</dd>
-</dl>
+<main>
+    <div class="container" style="padding-top: 3em">
 
 
-<form action="/dsig" method="post" id="digital-signature">
-    <input type="hidden" id="paymentId" value="@Model.PaymentId" />
-    @foreach (var auth in Model.AuthenticatorTypes)
-    {
-        if (auth.Key == "yubikey")
-        {
-            <input type="radio" id="@auth.Value" name="authenticator" value="@auth.Value" checked="checked"> @:Yubikey AAGuid:@auth.Value
+        <h2>Payment Data</h2>
+        <dl>
+            <dt>Payment Identificator</dt>
+            <dd>@Model.PaymentId</dd>
+
+            <dt>Creditor Account</dt>
+            <dd>@Model.CreditorAccount</dd>
+
+            <dt>Debtor Account</dt>
+            <dd>@Model.DebtorAccount</dd>
+
+            <dt>Subject</dt>
+            <dd>@Model.UserId</dd>
+        </dl>
 
 
-        }
-        else if (auth.Key == "windows-hello")
-        {
-            <input type="radio" id="@auth.Value" name="authenticator" value="@auth.Value" checked="checked"> @:Windows Hello AAGuid:@auth.Value
+        <form action="/dsig" method="post" id="digital-signature">
+            <input type="hidden" id="paymentId" value="@Model.PaymentId" />
+            @if (Model.Fido2Registered)
+            {
+                <!-- Default unchecked -->
+                <div class="custom-control custom-radio">
+                    <input type="radio" class="custom-control-input" id="fido2Radio" value="fido2" name="authenticator">
+                    <label class="custom-control-label" for="fido2Radio">Sign using FIDO2 Authenticator</label>
+                </div>
+            }
+            @if (Model.SmartCardRegistered)
+            {
+                <!-- Default checked -->
+                <div class="custom-control custom-radio">
+                    <input type="radio" class="custom-control-input" id="smartCardRadio" value="smart_card" name="authenticator">
+                    <label class="custom-control-label" for="smartCardRadio">Sign using smart card</label>
+                </div>
+            }
+
+            @*@foreach (var auth in Model.AuthenticatorTypes)
+                {
+                    if (auth.Key == "yubikey")
+                    {
+                        <input type="radio" id="@auth.Value" name="authenticator" value="@auth.Value" checked="checked"> @:Yubikey AAGuid:@auth.Value
+                    }
+                    else if (auth.Key == "windows-hello")
+                    {
+                        <input type="radio" id="@auth.Value" name="authenticator" value="@auth.Value" checked="checked"> @:Windows Hello AAGuid:@auth.Value
+                    }
+                    <br />
+                }*@
+            <button class="btn btn-indigo" data-toggle="modal" data-target="#dsigModal" type="submit" id="digital-signature-button" name="button" value="digital-signature">Authorize Payment</button>
+        </form>
+
+        <script src="~/js/dsig.js"></script>
+        <script src="~/js/helpers.js"></script>
+    </div>
+</main>
 
 
-        }
-        <br />
-    }
-    <button class="btn btn-primary" type="submit" id="digital-signature-button" name="button" value="digital-signature">Authorize Payment</button>
-</form>
-<script src="~/js/dsig.js"></script>
-<script src="~/js/helpers.js"></script>
+<!-- Modal -->
+<div class="modal fade" id="dsigModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="dsigModalTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+               
+            </div>
+            <div class="modal-body">
+                <p id="dsigModalBody"></p>
+                <form id="smart_card_signature">
+                    <input type="hidden" id="payload" value="" />
+                    <button id="smart_card_signature_button" class="btn btn-indigo" hidden>Authorize Payment</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>

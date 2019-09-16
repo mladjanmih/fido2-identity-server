@@ -20,6 +20,8 @@ namespace Fido2IdentityServer.Identity
 
         public DbSet<Payment> Payments { get; set; }
 
+        public DbSet<PaymentAuthorization> PaymentAuthorizations { get; set; }
+        public DbSet<UserCertificate> UserCertificates { get; set; }
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseSqlite(@"Data Source=C:\Users\Mladjan\source\repos\Fido2\Fido2.Identity\users.db");
@@ -41,8 +43,11 @@ namespace Fido2IdentityServer.Identity
             builder.Entity<RoleClaim>().ToTable("RoleClaims");
             builder.Entity<UserToken>().ToTable("UserTokens");
             builder.Entity<FidoLogin>().ToTable("FidoLogins");
+            builder.Entity<PaymentAuthorization>().ToTable("PaymentAuthorizations");
+            builder.Entity<UserCertificate>().ToTable("UserCertificates");
       //      builder.Entity<FidoLogin>().OwnsOne(x => x.CredentialPublicKey);
             builder.Entity<FidoLogin>().HasOne(x => x.User).WithMany(x => x.FidoLogins).HasForeignKey(x => x.UserId).OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<PaymentAuthorization>().HasOne(x => x.Payment).WithMany(x => x.PaymentAuthorizations).HasForeignKey(x => x.PaymentId).OnDelete(DeleteBehavior.Cascade);
         }
     }
 }

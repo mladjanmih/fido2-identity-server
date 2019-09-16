@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Fido2IdentityServer.Identity.Migrations
 {
     [DbContext(typeof(AuthenticationContext))]
-    [Migration("20190907101303_InitialCreate")]
+    [Migration("20190916122359_InitialCreate")]
     partial class InitialCreate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -32,9 +32,9 @@ namespace Fido2IdentityServer.Identity.Migrations
 
                     b.Property<byte[]>("PublicKey");
 
-                    b.Property<byte[]>("PublicKeyIdBytes");
+                    b.Property<string>("PublicKeyId");
 
-                    b.Property<string>("PublikKeyId");
+                    b.Property<byte[]>("PublicKeyIdBytes");
 
                     b.Property<DateTime>("RegistrationDate");
 
@@ -66,11 +66,41 @@ namespace Fido2IdentityServer.Identity.Migrations
 
                     b.Property<string>("DebtorName");
 
+                    b.Property<DateTime>("RequestDateTime");
+
+                    b.Property<string>("Status");
+
                     b.Property<string>("UserId");
 
                     b.HasKey("Id");
 
                     b.ToTable("Payments");
+                });
+
+            modelBuilder.Entity("Fido2IdentityServer.Identity.Models.PaymentAuthorization", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd();
+
+                    b.Property<string>("AuthenticatorData");
+
+                    b.Property<DateTime>("AuthorizationDateTime");
+
+                    b.Property<string>("ClientData");
+
+                    b.Property<string>("PaymentId");
+
+                    b.Property<string>("PublicKeyId");
+
+                    b.Property<string>("Signature");
+
+                    b.Property<int>("Type");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PaymentId");
+
+                    b.ToTable("PaymentAuthorizations");
                 });
 
             modelBuilder.Entity("Fido2IdentityServer.Identity.Models.Role", b =>
@@ -237,6 +267,14 @@ namespace Fido2IdentityServer.Identity.Migrations
                     b.HasOne("Fido2IdentityServer.Identity.Models.User", "User")
                         .WithMany("FidoLogins")
                         .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade);
+                });
+
+            modelBuilder.Entity("Fido2IdentityServer.Identity.Models.PaymentAuthorization", b =>
+                {
+                    b.HasOne("Fido2IdentityServer.Identity.Models.Payment", "Payment")
+                        .WithMany("PaymentAuthorizations")
+                        .HasForeignKey("PaymentId")
                         .OnDelete(DeleteBehavior.Cascade);
                 });
 

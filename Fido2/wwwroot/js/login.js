@@ -4,9 +4,13 @@ if (document.getElementById('login') != null)
 
 async function handleLogin(event) {
     event.preventDefault();
+
+    document.getElementById("loginModalTitle").innerHTML = "Login";
+  
     var username = this.loginUsername.value;
     var password = this.loginPassword.value;
     var passwordless = this.passwordSwitch.checked;
+    var rememberLogin = this.rememberLogin.checked;
     let returnUrl;
     if (this.returnUrl) {
         returnUrl = this.returnUrl.value;
@@ -17,10 +21,15 @@ async function handleLogin(event) {
 
     var formData = new FormData();
     formData.append('Username', username);
-    formData.append('Password', password);
+    if (!passwordless)
+        formData.append('Password', password);
+
+    formData.append('Passwordless', passwordless);
     if (returnUrl != null) {
         formData.append('ReturnUrl', returnUrl);
     }
+
+    formData.append('RememberLogin', rememberLogin);
     let loginResult;
     try {
         var res = await fetch('/Account/Login', { //Send request for login
@@ -47,12 +56,11 @@ async function handleLogin(event) {
         return;
     }
 
-    if (!loginResult.twoFactor) {
+    if (!loginResult.fidoLogin) {
         window.location.href = '/Fido/Devices';
         return;
     }
 
-    document.getElementById("loginModalTitle").innerHTML = "Login with authenticator";
     document.getElementById("loginModalBody").innerHTML = "Please use your authenticator to finish login";
 
     let makeAssertionOptions = loginResult.makeAssertionOptions;
@@ -141,6 +149,7 @@ function handleUnsuccessfullLogin(message) {
         document.getElementById("loginModalBody").innerHTML = message;
     }
 }
+
 async function handleSignInSubmit(formData) {
     // send to server for registering
     let makeAssertionOptions;

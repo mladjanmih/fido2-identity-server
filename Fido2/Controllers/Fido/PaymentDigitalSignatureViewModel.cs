@@ -29,7 +29,8 @@ namespace Fido2IdentityServer.Controllers.Fido
         //[JsonIgnore]
         //public string Challenge { get; set; }
 
-        [JsonIgnore]
-        public List<KeyValuePair<string, string>> AuthenticatorTypes { get; set; } = new List<KeyValuePair<string, string>>();
+        public bool Fido2Registered { get; set; }
+
+        public bool SmartCardRegistered { get; set; }
     }
 }

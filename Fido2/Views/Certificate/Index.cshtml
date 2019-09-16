@@ -1,0 +1,93 @@
+﻿@model Fido2IdentityServer.Controllers.Certificate.CertificatesViewModel
+
+
+<main>
+    <div class="container" style="padding-top: 3em">
+
+        <!--Section: Password Login-->
+        <section class="mt-5 wow fadeIn">
+            <h3 class="h3 text-center mb-5">Registered certificates</h3>
+            @if (Model.Certificates.Any())
+            {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Subject</th>
+                            <th scope="col">Registration Date</th>
+                            <th scope="col">Thumbprint</th>
+                            <th scope="col">Credential ID</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var cert in Model.Certificates)
+                        {
+                            <tr>
+                                <td>@cert.Subject</td>
+                                <td>@cert.RegistrationDate</td>
+                                <td>@cert.Thumbprint</td>
+                                <td>
+                                    <form asp-action="RemoveCertificate" asp-route-certThumbprint="@cert.Thumbprint">
+
+                                        <button class="btn btn-indigo" type="submit" name="button" value="@cert.Thumbprint">Remove</button>
+                                    </form>
+                                </td>
+                            </tr>
+
+                        }
+                    </tbody>
+                </table>
+            }
+
+            @if (Model.RegistrationSuccess != null)
+            {
+                if (Model.RegistrationSuccess.Value)
+                {
+                    <div class="alert alert-success">
+                        <p>Certificate successfully registered.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-danger">
+                        <p>Certificate registration failed.</p>
+                    </div>
+                }
+            }
+        </section>
+        <section>
+            <form asp-action="Register" method="post" id="registerCertificate">
+                <button class="btn btn-indigo" data-toggle="modal" data-target="#regCertModal" type="submit" name="button" value="register_device">Add New Certificate</button>
+                @*<button class="btn btn-primary" type="submit" name="button" value="windows-hello">Register Windows Hello</button>*@
+            </form>
+        </section>
+
+
+    </div>
+</main>
+
+<!-- Modal -->
+<div class="modal fade" id="regCertModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="regCertModalTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+
+            </div>
+            <div class="modal-body">
+                <p id="regCertModalBody"></p>
+                <form id="regCert">
+                    <input type="hidden" id="payload" value="" />
+                    <button id="regCertBttn" class="btn btn-indigo" hidden>Register</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="~/js/registerCertificate.js"></script>
+<script src="~/js/helpers.js"></script>

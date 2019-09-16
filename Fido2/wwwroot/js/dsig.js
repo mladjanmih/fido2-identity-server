@@ -1,7 +1,5 @@
 if (document.getElementById('digital-signature') != null) 
     document.getElementById('digital-signature').addEventListener('submit', handleDSigAuthenticatorSelectSubmit);
-//if (document.getElementById('windows-hello-dsig') != null)
-//    document.getElementById('windows-hello-dsig').addEventListener('submit', handleWindowsHelloDSigSubmit);
 
 async function handleDSigAuthenticatorSelectSubmit(event) {
     event.preventDefault();
@@ -18,26 +16,14 @@ async function handleDSigAuthenticatorSelectSubmit(event) {
 
     // prepare form post data
     var formData = new FormData();
-    formData.append("authenticator", authenticator);
+    formData.append("authType", authenticator);
 
     await handleDSigSubmit(formData, paymentId);
 }
 
-//async function handleWindowsHelloDSigSubmit(event) {
-//    event.preventDefault();
-
-//    let challenge = this.windowsHelloChallenge.value;
-
-//    // prepare form post data
-//    var formData = new FormData();
-//    formData.append('dsigType', "windows-hello");
-
-//    await handleDSigSubmit(formData, challenge);
-//}
-
 async function handleDSigSubmit(formData, paymentId) {
     // send to server for registering
-    let makeAssertionOptions;
+    let options;
     try {
         var res = await fetch('/Fido/AssertDigitalSignature', {
             method: 'POST', // or 'PUT'
@@ -50,21 +36,53 @@ async function handleDSigSubmit(formData, paymentId) {
         if (res == null) {
             window.location.href = "/Fido/DigitalSigningFailed";
         }
-        makeAssertionOptions = await res.json();
+        options = await res.json();
     } catch (e) {
        // showErrorAlert("Request to server failed", e);
         window.location.href = "/Fido/DigitalSigningFailed";
         return;
     }
 
+    let makeAssertionOptions, smartCardOptions;
+    let fido2, smartCard;
+
+    if (options.type) {
+        if (options.type == "fido2") {
+            fido2 = true;
+            smartCard = false;
+            makeAssertionOptions = options.makeAssertionOptions;
+        }
+        else if (options.type == "smart_card") {
+            fido2 = false;
+            smartCard = true;
+            smartCardOptions = options.smartCardOptions;
+        }
+    }
+    else {
+        handleUnsuccessfulDsig(options.message)
+    }
+
+    if (fido2) {
+        await fido2Dsig(makeAssertionOptions);
+    }
+    else if (smartCard) {
+        await smartCardDsig(smartCardOptions);
+    }
+
+    else {
+        handleUnsuccessfulDsig(options.message)
+    }
+}
+
+
+async function fido2Dsig(makeAssertionOptions) {
     console.log("Assertion Options Object", makeAssertionOptions);
+    document.getElementById("dsigModalTitle").innerHTML = "Digital signature";
+    document.getElementById("dsigModalBody").innerHTML = "Please use your FIDO2 authenticator to digitaly sign the payment.";
 
     // show options error to user
     if (makeAssertionOptions.status !== "ok") {
-        console.log("Error creating assertion options");
-        console.log(makeAssertionOptions.errorMessage);
-       // showErrorAlert(makeAssertionOptions.errorMessage);
-        window.location.href = "/Fido/DigitalSigningFailed";
+        handleUnsuccessfulDsig("Error creating assertion data.");
         return;
     }
 
@@ -85,7 +103,8 @@ async function handleDSigSubmit(formData, paymentId) {
     try {
         credential = await navigator.credentials.get({ publicKey: makeAssertionOptions })
     } catch (err) {
-        window.location.href = "/Fido/DigitalSigningFailed";
+        handleUnsuccessfulDsig("Error in communication with authenticator!");
+        return;
     }
 
     let authData = new Uint8Array(credential.response.authenticatorData);
@@ -117,10 +136,10 @@ async function handleDSigSubmit(formData, paymentId) {
 
         response = await res.json();
     } catch (e) {
-     //   showErrorAlert("Request to server failed", e);
-        window.location.href = "/Fido/DigitalSigningFailed";
+        //   showErrorAlert("Request to server failed", e);
+        handleUnsuccessfulDsig("Signature data validation failed.");
         throw e;
-       
+
     }
 
     console.log("Assertion Object", response);
@@ -129,11 +148,87 @@ async function handleDSigSubmit(formData, paymentId) {
     if (response.success !== true) {
         console.log("Error doing assertion");
         console.log(response.errorMessage);
- //       showErrorAlert(response.errorMessage);
-        window.location.href = "/Fido/DigitalSigningFailed";
+        handleUnsuccessfulDsig(response.errorMessage);
         return;
     }
 
     // redirect to dashboard to show keys
     window.location.href = "/Fido/DigitalSigningSuccess";
+}
+
+async function smartCardDsig(smartCardOptions) {
+    document.getElementById("dsigModalTitle").innerHTML = "Digital signature";
+    document.getElementById("dsigModalBody").innerHTML = "Please run your desktop application to digitally sign the payment with smart card. When you run application, click on Authorize.";
+    document.getElementById("smart_card_signature_button").hidden = false;
+    document.getElementById("payload").value = smartCardOptions.payload; 
+
+    if (document.getElementById('smart_card_signature') != null)
+        document.getElementById('smart_card_signature').addEventListener('submit', handleSmartCardDsig);
+
+    
+}
+
+async function handleSmartCardDsig(event) {
+    event.preventDefault();
+   var payload =  document.getElementById("payload").value;
+    var formData = new FormData();
+    formData.append("payload", payload);
+    let res;
+    let jsonRes;
+    try {
+        res = await fetch("https://localhost:5001/signature", {
+            method: 'POST', // or 'PUT'
+            body: formData // data can be `string` or {object}
+        }).then(response => response.json())
+            .then(jsondata => {
+                console.log(jsondata);
+                jsonRes = jsondata;
+            });
+    }
+    catch (err) {
+        console.log(err);
+        smartCardAuthorizationFailed();
+        return;
+    }
+
+    try {
+
+        let verifyResult = await fetch("/Fido/SmartCardDigitalSignatureCallback", {
+            method: 'POST', // or 'PUT'
+            body: JSON.stringify(jsonRes), // data can be `string` or {object}
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        verify = await verifyResult.json();
+        if (verify.success == true) {
+            window.location.href = "/Fido/DigitalSigningSuccess";
+        }
+        else {
+            smartCardAuthorizationFailed();
+            return;
+        }
+    }
+    catch (err) {
+        console.log(err);
+        smartCardAuthorizationFailed();
+       return;
+    }
+}
+
+function handleUnsuccessfulDsig(message) {
+    if (!message) {
+        document.getElementById("dsigModalTitle").innerHTML = "Error";
+        document.getElementById("dsigModalBody").innerHTML = "Digital signature error";
+    }
+    else {
+        document.getElementById("dsigModalTitle").innerHTML = "Error";
+        document.getElementById("dsigModalBody").innerHTML = message;
+    }
+    document.getElementById("smart_card_signature_button").hidden = true;
+}
+
+function smartCardAuthorizationFailed() {
+    document.getElementById("dsigModalTitle").innerHTML = "Payment authorization";
+    document.getElementById("dsigModalBody").innerHTML = "Authorization failed. Please run your desktop application to digitally sign the payment with smart card. When you run application, click on Authorize.";
 }

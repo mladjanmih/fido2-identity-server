@@ -24,17 +24,11 @@ namespace Fido2IdentityServer.Identity.Models
         public string DebtorName { get; set; }
 
         public decimal Amount { get; set; }
-
-        public bool HasSignature { get; set; }
-
-        public string Signature { get; set; }
-
-        public string PublicKeyId { get; set; }
-
-        public string AuthenticatorData { get; set; }
-
-        public string ClientData { get; set; }
+        
+        public string Status { get; set; }
 
         public DateTime RequestDateTime { get; set; }
+
+        public virtual ICollection<PaymentAuthorization> PaymentAuthorizations { get; set; }
     }
 }

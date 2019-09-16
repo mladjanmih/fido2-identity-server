@@ -22,7 +22,7 @@
         <!--Section: Password Login-->
         <section class="mt-5 wow fadeIn">
 
-            <partial name="Partial/_HomePasswordLogin.cshtml" model="Model.Login" />
+            <partial name="~/Views/Shared/_PasswordLogin.cshtml" model="Model.Login" />
 
         </section>
         
@@ -31,11 +31,11 @@
         <!--Section: Passwordless login-->
         <section>
 
-            <partial name="Partial/_Fido2Details.cshtml" model="Model.Login"/>
+            <partial name="~/Views/Shared/_Fido2Details.cshtml"/>
 
         </section>
         <!--Section: Main features & Quick Start-->
-        <partial name="Partial/_HomeOther.cshtml" />
+        <partial name="~/Views/Shared/_HomeOther.cshtml" />
 
     </div>
 </main>

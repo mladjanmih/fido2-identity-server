@@ -13,5 +13,7 @@ namespace Fido2IdentityServer.Controllers.Account
         public string Password { get; set; }
         public bool RememberLogin { get; set; }
         public string ReturnUrl { get; set; }
+
+        public bool Passwordless { get; set; }
     }
 }

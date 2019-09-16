@@ -1,89 +1,158 @@
 @using Fido2IdentityServer.Controllers.Account;
 @model LoginViewModel
 
-<div class="login-page">
-    <div class="page-header">
-        <h1>Login</h1>
-    </div>
+<div class="view full-page-intro" style="background-image: url(@Url.Content("~/img/background.jpg")); background-repeat: no-repeat; background-size: cover; margin: 0;">
 
-    <partial name="_ValidationSummary" />
+    <!-- Regiister form-->
+    <div class="mask rgba-black-light d-flex justify-content-center align-items-center">
 
-    <div class="row">
 
-        @if (Model.EnableLocalLogin)
-        {
-            <div class="col-sm-6">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">Local Login</h3>
-                    </div>
-                    <div class="panel-body">
+        <!-- Content -->
+        <div class="container">
 
-                        <form asp-route="Login">
-                            <input type="hidden" asp-for="ReturnUrl" />
+            <!--Grid row-->
+            <div class="row wow fadeIn">
 
-                            <fieldset>
-                                <div class="form-group">
-                                    <label asp-for="Username"></label>
-                                    <input class="form-control" placeholder="Username" asp-for="Username" autofocus>
+                <!--Grid column-->
+                <div class="col-md-6 mb-4 white-text text-center text-md-left">
+
+                    <h1 class="display-4 font-weight-bold">FIDO2 Identity Management & Authenticaiton Server</h1>
+
+                    <hr class="hr-light">
+
+                    <p>
+                        <strong>Revolution in user authentication</strong>
+                    </p>
+
+                    <p class="mb-4 d-none d-md-block">
+                        <strong>
+                            FIDO2 brings to you the most secure way to authenticate throughout World Wide Web.
+                        </strong>
+                    </p>
+
+                </div>
+                <!--Grid column-->
+                <!--Grid column-->
+                <div class="col-md-6 col-xl-5 mb-4">
+
+                    <!--Card-->
+                    <div class="card">
+
+                        <!--Card content-->
+                        <div class="card-body">
+
+                            <!-- Form -->
+                            <form asp-action="Login" asp-controller="Account" id="login">
+                                <!-- Heading -->
+                                <h3 class="dark-grey-text text-center">
+                                    <strong>Login</strong>
+                                </h3>
+                                <hr>
+
+                                <div class="md-form">
+                                    <i class="fas fa-user prefix grey-text"></i>
+                                    <input type="text" id="loginUsername" class="form-control" asp-for="Username">
+                                    <label for="loginUsername">User Name:</label>
                                 </div>
-                                <div class="form-group">
-                                    <label asp-for="Password"></label>
-                                    <input type="password" class="form-control" placeholder="Password" asp-for="Password" autocomplete="off">
+
+                                <div class="md-form" id="passwordDiv">
+                                    <i class="fas fa-key prefix grey-text"></i>
+                                    <input type="password" id="loginPassword" class="form-control" asp-for="Password">
+                                    <label for="loginPassword">Password:</label>
                                 </div>
-                                @if (Model.AllowRememberLogin)
-                                {
-                                    <div class="form-group login-remember">
-                                        <label asp-for="RememberLogin">
-                                            <input asp-for="RememberLogin">
-                                            <strong>Remember My Login</strong>
-                                        </label>
+
+                                <input type="hidden" asp-for="ReturnUrl" id="returnUrl" />
+                                <div class="row">
+                                    <div class="col-md-6 mb-4">
+                                        <div class="text-center">
+                                            <button class="btn btn-indigo" data-toggle="modal" data-target="#loginModal">Login</button>
+                                        </div>
                                     </div>
-                                }
-                                <div class="form-group">
-                                    <button class="btn btn-primary" name="button" value="login">Login</button>
-                                    <button class="btn btn-default" name="button" value="cancel">Cancel</button>
+                                    <div class="col-md-6 mb-4">
+                                        <div class="row">
+                                            <div class="custom-control custom-switch">
+                                                <input type="checkbox" class="custom-control-input" id="passwordSwitch" onclick="passwordSwitchChanged()">
+                                                <label class="custom-control-label" for="passwordSwitch">Passwordless</label>
+                                            </div>
+                                            <div class="custom-control custom-switch" style="padding-top=2px">
+                                                <input type="checkbox" class="custom-control-input" id="rememberLogin">
+                                                <label class="custom-control-label" for="rememberLogin">Remember Login</label>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                 </div>
-                            </fieldset>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        }
 
-        @if (Model.VisibleExternalProviders.Any())
-        {
-            <div class="col-md-6 col-sm-6 external-providers">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        <h3 class="panel-title">External Login</h3>
-                    </div>
-                    <div class="panel-body">
-                        <ul class="list-inline">
-                            @foreach (var provider in Model.VisibleExternalProviders)
-                            {
-                                <li>
-                                    <a class="btn btn-default"
-                                       asp-controller="External"
-                                       asp-action="Challenge"
-                                       asp-route-provider="@provider.AuthenticationScheme"
-                                       asp-route-returnUrl="@Model.ReturnUrl">
-                                        @provider.DisplayName
-                                    </a>
-                                </li>
-                            }
-                        </ul>
-                    </div>
-                </div>
-            </div>
-        }
+                            </form>
+                            <!-- Form -->
 
-        @if (!Model.EnableLocalLogin && !Model.VisibleExternalProviders.Any())
-        {
-            <div class="alert alert-warning">
-                <strong>Invalid login request</strong>
-                There are no login schemes configured for this client.
+                        </div>
+
+                    </div>
+                    <!--/.Card-->
+
+                </div>
+                <!--Grid column-->
+
             </div>
-        }
+            <!--Grid row-->
+
+        </div>
+        <!-- Content -->
+
+
+    </div>
+    <!-- Mask & flexbox options-->
+
+</div>
+<!-- Full Page Intro -->
+<!--Main layout-->
+<main>
+    <div class="container">
+
+        <!--Section: Password Login-->
+        <section class="mt-5 wow fadeIn">
+
+            <partial name="~/Views/Shared/_Fido2Details.cshtml" />
+
+        </section>
+
+        <hr class="my-5">
+        <!--Section: Main features & Quick Start-->
+        <partial name="~/Views/Shared/_HomeOther.cshtml" />
+
+    </div>
+</main>
+
+<!-- Modal -->
+<div class="modal fade" id="loginModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+     aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loginModalTitle"></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p id="loginModalBody"></p>
+            </div>
+
+        </div>
     </div>
 </div>
+<!--Grid row-->
+<script>
+    function passwordSwitchChanged() {
+        if (document.getElementById("passwordSwitch").checked) {
+            document.getElementById("passwordDiv").hidden = true;
+        }
+        else {
+            document.getElementById("passwordDiv").hidden = false;
+        }
+    }
+</script>
+
+<script src="~/js/login.js"></script>
+<script src="~/js/helpers.js"></script>

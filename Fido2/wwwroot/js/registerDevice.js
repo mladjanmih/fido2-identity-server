@@ -1,21 +1,13 @@
-﻿if (document.getElementById('register') != null)
-    document.getElementById('register').addEventListener('submit', registerWithPassword);
+﻿if (document.getElementById('registerDevice') != null)
+    document.getElementById('registerDevice').addEventListener('submit', registerDevice);
 
-
-async function registerWithPassword() {
+async function registerDevice(event) {
+    event.preventDefault();
     let makeCredentialOptions;
     var formData = new FormData();
-    let username = this.username.value;
-    let password = this.password.value;
-    let confirmPassword = this.confirmPassword.value;
-    let email = this.email.value;
-    formData.append('Username', username);
-    formData.append('Password', password);
-    formData.append('ConfirmPassword', confirmPassword);
-    formData.append('Email', email);
-
+   
     try {
-        var res = await fetch('/Account/Register', {
+        var res = await fetch('/Fido/FidoRegister', {
             method: 'POST', // or 'PUT'
             body: formData, // data can be `string` or {object}!
             headers: {
@@ -23,15 +15,16 @@ async function registerWithPassword() {
             }
         });
         if (res == null) {
-            window.location.href = "/Account/Fido2LoginFailed";
+            handleUnsuccessfullDeviceRegister(null);
+            return;
         }
         makeCredentialOptions = await res.json();
     } catch (e) {
         // showErrorAlert("Request to server failed", e);
-        window.location.href = "/Account/Fido2LoginFailed";
+        handleUnsuccessfullDeviceRegister("Request to server failed");
         return;
     }
-  //  var makeCredentialOptions = @Html.Raw(Json.Serialize(Model.CredentialCreateOptions));
+    //  var makeCredentialOptions = @Html.Raw(Json.Serialize(Model.CredentialCreateOptions));
     console.log("Credential Options Object", makeCredentialOptions);
 
     makeCredentialOptions.challenge = coerceToArrayBuffer(makeCredentialOptions.challenge);
@@ -78,17 +71,28 @@ async function registerWithPassword() {
                     if (success)
                         window.location.href = "/Fido/RegisterSuccess";
                     else
-                        window.location.href = "/Fido/RegisterFailed";
+                        handleUnsuccessfullDeviceRegister("Could not create credentials in browser.");
                 }
 
             });
         },
-            (err) => { window.location.href = "/Fido/RegisterFailed"; });
+            (err) => { handleUnsuccessfullDeviceRegister("Could not create credentials in browser."); });
     } catch (e) {
         var msg = "Could not create credentials in browser. Probably because the username is already registered with your authenticator. Please change username or authenticator."
         console.error(msg, e);
-        showErrorAlert(msg, e);
-        window.location.href = "/Fido/RegisterFailed";
+        handleUnsuccessfullDeviceRegister(msg);
+        return;
+        //window.location.href = "/Fido/RegisterFailed";
     }
 }
 
+function handleUnsuccessfullDeviceRegister(message) {
+    if (!message) {
+        document.getElementById("loginModalTitle").innerHTML = "Error";
+        document.getElementById("loginModalBody").innerHTML = "Login error";
+    }
+    else {
+        document.getElementById("loginModalTitle").innerHTML = "Error";
+        document.getElementById("loginModalBody").innerHTML = message;
+    }
+}

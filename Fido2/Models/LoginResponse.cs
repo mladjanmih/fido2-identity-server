@@ -11,8 +11,8 @@ namespace Fido2IdentityServer.Models
     [Serializable]
     public class LoginResponse
     {
-        [DataMember(Name = "twoFactor")]
-        public bool TwoFactor { get; set; }
+        [DataMember(Name = "fidoLogin")]
+        public bool FidoLogin { get; set; }
 
         [DataMember(Name = "success")]
         public bool Success { get; set; }
@@ -25,5 +25,6 @@ namespace Fido2IdentityServer.Models
 
         [DataMember(Name = "makeAssertionOptions")]
         public AssertionOptions Options { get; set; }
+
     }
 }

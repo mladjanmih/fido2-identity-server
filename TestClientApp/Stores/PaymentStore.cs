@@ -1,5 +1,6 @@
 ﻿using Fido2IdentityServer.Identity;
 using Fido2IdentityServer.Identity.Models;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +19,7 @@ namespace TestClientApp.Stores
         
         public List<Payment> GetUserPayments(string userId)
         {
-            return _context.Payments.Where(x => x.UserId == userId).ToList();
+            return _context.Payments.Where(x => x.UserId == userId).Include(x => x.PaymentAuthorizations).ToList();
         }
 
         public string AddPayment(Payment payment)
@@ -52,7 +53,7 @@ namespace TestClientApp.Stores
             //    else
             //        return null;
             //}
-            var payment = _context.Payments.FirstOrDefault(x => x.Id == id);
+            var payment = _context.Payments.Where(x => x.Id == id).Include(x => x.PaymentAuthorizations).FirstOrDefault();
             return payment;
         }
 

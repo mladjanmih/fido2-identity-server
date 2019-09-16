@@ -1,4 +1,4 @@
-﻿@model  TestClientApp.Models.PaymentsViewModel
+﻿@model TestClientApp.Models.PaymentsViewModel
 @{
     ViewData["Title"] = "InitiatePayment";
 }
@@ -19,7 +19,7 @@
                 <th scope="col">Debtor Name</th>
                 <th scope="col">Debtor Account</th>
                 <th scope="col">Request Time</th>
-                <th scope="col"></th>
+                <th scope="col">Authorization Date</th>
             </tr>
         </thead>
         <tbody>
@@ -32,18 +32,19 @@
                     <td>@payment.DebtorName</td>
                     <td>@payment.DebtorName</td>
                     <td>@payment.RequestDateTime</td>
-                    <td>
-                        <form asp-action="SignPayment" asp-controller="Payment" asp-route-paymentId="@payment.PaymentId">
-                            @if (payment.HasSignature)
-                            {
-                                <button class="btn btn-primary" name="button" value="initiate" disabled>Sign Payment</button>
-                            }
-                            else
-                            {
-                                <button class="btn btn-primary" name="button" value="initiate" >Sign Payment</button>
-                            }
-                        </form>
-                    </td>
+
+                    @if (payment.HasSignature)
+                    {
+                        <td>@payment.AuthorizationDateTime.Value</td>
+                    }
+                    else
+                    {
+                        <td>
+                            <form asp-action="SignPayment" asp-controller="Payment" asp-route-paymentId="@payment.PaymentId">
+                                <button class="btn btn-primary" name="button" value="initiate">Authorize</button>
+                            </form>
+                        </td>
+                    }
                 </tr>
 
             }

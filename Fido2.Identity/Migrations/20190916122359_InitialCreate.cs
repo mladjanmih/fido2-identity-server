@@ -21,7 +21,9 @@ namespace Fido2IdentityServer.Identity.Migrations
                     DebtorAccount = table.Column<string>(nullable: true),
                     CreditorName = table.Column<string>(nullable: true),
                     DebtorName = table.Column<string>(nullable: true),
-                    Amount = table.Column<decimal>(nullable: false)
+                    Amount = table.Column<decimal>(nullable: false),
+                    Status = table.Column<string>(nullable: true),
+                    RequestDateTime = table.Column<DateTime>(nullable: false)
                 },
                 constraints: table =>
                 {
@@ -71,6 +73,33 @@ namespace Fido2IdentityServer.Identity.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PaymentAuthorizations",
+                schema: "AUTHENTICATION",
+                columns: table => new
+                {
+                    Id = table.Column<long>(nullable: false)
+                        .Annotation("Sqlite:Autoincrement", true),
+                    PaymentId = table.Column<string>(nullable: true),
+                    AuthenticatorData = table.Column<string>(nullable: true),
+                    Type = table.Column<int>(nullable: false),
+                    Signature = table.Column<string>(nullable: true),
+                    ClientData = table.Column<string>(nullable: true),
+                    PublicKeyId = table.Column<string>(nullable: true),
+                    AuthorizationDateTime = table.Column<DateTime>(nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PaymentAuthorizations", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_PaymentAuthorizations_Payments_PaymentId",
+                        column: x => x.PaymentId,
+                        principalSchema: "AUTHENTICATION",
+                        principalTable: "Payments",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RoleClaims",
                 schema: "AUTHENTICATION",
                 columns: table => new
@@ -101,7 +130,7 @@ namespace Fido2IdentityServer.Identity.Migrations
                     Id = table.Column<long>(nullable: false)
                         .Annotation("Sqlite:Autoincrement", true),
                     UserId = table.Column<string>(nullable: true),
-                    PublikKeyId = table.Column<string>(nullable: true),
+                    PublicKeyId = table.Column<string>(nullable: true),
                     PublicKeyIdBytes = table.Column<byte[]>(nullable: true),
                     PublicKey = table.Column<byte[]>(nullable: true),
                     UserHandle = table.Column<byte[]>(nullable: true),
@@ -224,6 +253,12 @@ namespace Fido2IdentityServer.Identity.Migrations
                 column: "UserId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_PaymentAuthorizations_PaymentId",
+                schema: "AUTHENTICATION",
+                table: "PaymentAuthorizations",
+                column: "PaymentId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_RoleClaims_RoleId",
                 schema: "AUTHENTICATION",
                 table: "RoleClaims",
@@ -275,7 +310,7 @@ namespace Fido2IdentityServer.Identity.Migrations
                 schema: "AUTHENTICATION");
 
             migrationBuilder.DropTable(
-                name: "Payments",
+                name: "PaymentAuthorizations",
                 schema: "AUTHENTICATION");
 
             migrationBuilder.DropTable(
@@ -296,6 +331,10 @@ namespace Fido2IdentityServer.Identity.Migrations
 
             migrationBuilder.DropTable(
                 name: "UserTokens",
+                schema: "AUTHENTICATION");
+
+            migrationBuilder.DropTable(
+                name: "Payments",
                 schema: "AUTHENTICATION");
 
             migrationBuilder.DropTable(
