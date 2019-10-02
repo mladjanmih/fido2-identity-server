@@ -50,7 +50,13 @@ async function registerWithPassword() {
     try {
         newCredential = navigator.credentials.create({
             publicKey: makeCredentialOptions
-        }).then((newCredential) => {
+        });
+    }
+    catch (err) {
+        handleUnsuccessfullRegister(err.message ? err.message : err);
+        return;
+    }
+    .then((newCredential) => {
 
             console.log("PublicKeyCredential Created", newCredential);
 

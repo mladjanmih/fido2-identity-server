@@ -12,7 +12,7 @@
                 <table class="table">
                     <thead>
                         <tr>
-                            <th scope="col">Credential Type</th>
+                            @*<th scope="col">Credential Type</th>*@
                             <th scope="col">Registration Date</th>
                             <th scope="col">AAGuid</th>
                             <th scope="col">Credential ID</th>
@@ -23,7 +23,7 @@
                         @foreach (var device in Model.FidoLogins)
                         {
                             <tr>
-                                <td>@device.CredentialType</td>
+                                @*<td>@device.CredentialType</td>*@
                                 <td>@device.RegistrationDate</td>
                                 <td>@device.AaGuid</td>
                                 <td>@device.CredentialId</td>
